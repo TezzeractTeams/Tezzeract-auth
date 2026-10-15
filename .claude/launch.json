@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "auth-web-mocks",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@tezzeract/auth-web", "dev"],
+      "port": 5180
+    }
+  ]
+}
