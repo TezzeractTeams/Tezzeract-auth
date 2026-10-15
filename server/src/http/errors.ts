@@ -96,9 +96,21 @@ export function notFoundHandler(_req: Request, res: Response): void {
   res.status(404).json(body("validation_error"));
 }
 
-/** Wrap an async handler so a rejected promise reaches errorHandler. */
-export function asyncRoute<T extends Request>(handler: (req: T, res: Response) => Promise<void>) {
+/**
+ * Wrap a handler so a rejected promise reaches errorHandler.
+ *
+ * Accepts a synchronous handler as well, so a trivial route does not have to
+ * be declared async purely to satisfy the signature.
+ */
+export function asyncRoute<T extends Request>(
+  handler: (req: T, res: Response) => void | Promise<void>,
+) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    handler(req as T, res).catch(next);
+    try {
+      const result = handler(req as T, res);
+      if (result instanceof Promise) result.catch(next);
+    } catch (error) {
+      next(error);
+    }
   };
 }

@@ -41,5 +41,5 @@ export async function generateSigningKey(
 ): Promise<Jwk> {
   const { privateKey } = await generateKeyPair(alg, { extractable: true });
   const jwk = await exportJWK(privateKey);
-  return { ...jwk, kid, alg, use: "sig" } as Jwk;
+  return { ...jwk, kid, alg, use: "sig" };
 }

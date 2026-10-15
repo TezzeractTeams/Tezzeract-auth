@@ -107,7 +107,13 @@ export function ResetPassword(): JSX.Element {
 
   return (
     <AuthLayout title="Choose a new password">
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        noValidate
+        onSubmit={(event) => {
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
+      >
         {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
 
         <FormField label="New password" required error={errors.password?.message}>

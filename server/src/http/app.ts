@@ -34,6 +34,21 @@ export interface AppOptions {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Paths handled by the OIDC provider, matching the `routes` block in
+ * oidc/configuration.ts. `/authorize` also covers the interaction resume path
+ * `/authorize/:uid`.
+ */
+const OIDC_PATH_PREFIXES = [
+  "/.well-known",
+  "/authorize",
+  "/token",
+  "/jwks",
+  "/userinfo",
+  "/end_session",
+  "/revocation",
+] as const;
+
 /** web/dist, as laid out in the Docker image and in a local build. */
 export function defaultWebDistPath(): string | undefined {
   for (const candidate of [
@@ -85,11 +100,29 @@ export function createApp(options: AppOptions = {}): Express {
   app.use("/api", notFoundHandler);
 
   /**
-   * The OIDC provider owns /authorize, /token, /jwks, /userinfo,
-   * /.well-known/openid-configuration and /session/end. Mounted at the root
-   * because the discovery document advertises issuer-relative paths.
+   * The OIDC provider owns these paths.
+   *
+   * Scoped to a prefix list rather than mounted at the root, for two reasons.
+   * provider.callback() is a Koa callback, so it answers 404 for anything it
+   * does not route — mounted at the root it would swallow /login and every
+   * other SPA route before the static handler ever saw them. And app.use with
+   * a mount path rewrites req.url, which breaks the provider's own routing.
+   * Checking the prefix and passing the request through untouched avoids both.
    */
-  app.use("/", provider.callback());
+  const providerMiddleware = provider.callback();
+
+  app.use((req, res, next) => {
+    const owned = OIDC_PATH_PREFIXES.some(
+      (prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`),
+    );
+    if (!owned) {
+      next();
+      return;
+    }
+    // Express ignores a returned promise, so a rejection is routed to next()
+    // explicitly rather than being lost.
+    void Promise.resolve(providerMiddleware(req, res)).catch(next);
+  });
 
   if (options.serveWeb !== false) {
     const dist = options.webDistPath ?? defaultWebDistPath();

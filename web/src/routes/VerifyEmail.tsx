@@ -86,7 +86,13 @@ export function VerifyEmail(): JSX.Element {
             If that address needs confirming, a new link is on its way.
           </Alert>
         ) : (
-          <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            noValidate
+            onSubmit={(event) => {
+              void handleSubmit(onSubmit)(event);
+            }}
+            className="space-y-4"
+          >
             <FormField label="Email" required error={errors.email?.message}>
               <Input
                 type="email"

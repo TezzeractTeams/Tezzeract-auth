@@ -28,12 +28,21 @@ import {
 const CSRF_COOKIE = "tz_csrf";
 const CSRF_HEADER = "x-csrf-token";
 
+/**
+ * The cookie value is `token|hash`; the server compares only the `token` half
+ * against this header, so echoing the whole cookie fails validation. Mirrors
+ * CSRF_DELIMITER in server/src/http/middleware/csrf.ts.
+ */
+const CSRF_DELIMITER = "|";
+
 function readCsrfToken(): string | undefined {
   // document.cookie is the only readable source; the cookie carries no
   // authority alone, which is what makes double-submit safe.
   for (const part of document.cookie.split(";")) {
     const [name, ...rest] = part.trim().split("=");
-    if (name === CSRF_COOKIE) return decodeURIComponent(rest.join("="));
+    if (name !== CSRF_COOKIE) continue;
+    const value = decodeURIComponent(rest.join("="));
+    return value.split(CSRF_DELIMITER)[0];
   }
   return undefined;
 }

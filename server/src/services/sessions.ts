@@ -38,7 +38,7 @@ export async function currentInteraction(
     return {
       uid: details.uid,
       clientId: typeof clientId === "string" ? clientId : undefined,
-      params: details.params as Record<string, unknown>,
+      params: details.params,
     };
   } catch {
     // No interaction cookie, or it expired. Not an error worth logging at
@@ -50,11 +50,6 @@ export async function currentInteraction(
 /**
  * Complete an interaction with a signed-in account and return where to send
  * the browser.
- *
- * interactionResult is used rather than interactionFinished because the latter
- * writes a 302 to the response itself, and these endpoints answer with JSON so
- * that the frontend never builds a redirect URL — it only calls
- * window.location.assign on the opaque string returned here.
  */
 export async function completeInteraction(
   provider: Provider,
@@ -63,17 +58,61 @@ export async function completeInteraction(
   accountId: string,
   options: { remember?: boolean; amr?: string[] } = {},
 ): Promise<string> {
+  type DetailsArgs = Parameters<Provider["interactionDetails"]>;
+  const details = await provider.interactionDetails(req as DetailsArgs[0], res as DetailsArgs[1]);
+
+  const clientId = details.params["client_id"];
+  if (typeof clientId !== "string") {
+    throw new Error("interaction has no client_id");
+  }
+
+  /**
+   * Grant the requested scopes explicitly.
+   *
+   * Finishing with a consent result that carries no grantId means "reuse the
+   * existing grant", and on a first sign-in there is none — the provider then
+   * re-prompts and the browser bounces back to /login. Consent is implicit
+   * for these first-party Tezzeract clients, so the grant is created here
+   * rather than by asking the user a question they cannot meaningfully answer
+   * about their own company's products.
+   *
+   * An existing grant is reused and extended, so returning to a product the
+   * user has already authorised does not accumulate grant records.
+   */
+  const existing =
+    typeof details.grantId === "string" ? await provider.Grant.find(details.grantId) : undefined;
+
+  const grant = existing ?? new provider.Grant({ accountId, clientId });
+
+  const scope = details.params["scope"];
+  if (typeof scope === "string") grant.addOIDCScope(scope);
+
+  // Resource scopes are what make the access token a JWT (see
+  // oidc/configuration.ts), so the granted resource has to be recorded too.
+  const resource = details.params["resource"];
+  if (typeof resource === "string" && typeof scope === "string") {
+    grant.addResourceScope(resource, scope);
+  }
+
+  const grantId = await grant.save();
+
+  /**
+   * interactionResult is used rather than interactionFinished because the
+   * latter writes a 302 to the response itself, and these endpoints answer
+   * with JSON so that the frontend never builds a redirect URL — it only
+   * calls window.location.assign on the opaque string returned here.
+   */
+  type ResultArgs = Parameters<Provider["interactionResult"]>;
   return provider.interactionResult(
-    req as Parameters<Provider["interactionResult"]>[0],
-    res as Parameters<Provider["interactionResult"]>[1],
+    req as ResultArgs[0],
+    res as ResultArgs[1],
     {
       login: {
         accountId,
         remember: options.remember ?? true,
         ...(options.amr ? { amr: options.amr } : {}),
       },
-      // Consent is implicit: these are all first-party Tezzeract clients.
-      consent: { grantId: undefined },
+      consent: { grantId },
     },
     { mergeWithLastSubmission: false },
   );

@@ -16,24 +16,30 @@ export function ipKey(req: Request): string {
   return req.ip ?? req.socket.remoteAddress ?? "unknown";
 }
 
-export function limit(policy: PolicyName, key: (req: Request) => string | undefined) {
-  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const raw = key(req);
-      // No key means nothing to limit on — a body that failed validation, for
-      // instance. Validation will reject it a moment later.
-      if (raw === undefined || raw === "") {
-        next();
-        return;
-      }
-      const result = await consume(policy, `${policy}:${raw}`);
-      if (!result.allowed) {
-        next(new AppError("rate_limited", { retryAfterSeconds: result.retryAfterSeconds }));
-        return;
-      }
+export function limit(
+  policy: PolicyName,
+  key: (req: Request) => string | undefined,
+): (req: Request, res: Response, next: NextFunction) => void {
+  const check = async (req: Request, next: NextFunction): Promise<void> => {
+    const raw = key(req);
+    // No key means nothing to limit on — a body that failed validation, for
+    // instance. Validation will reject it a moment later.
+    if (raw === undefined || raw === "") {
       next();
-    } catch (error) {
-      next(error);
+      return;
     }
+    const result = await consume(policy, `${policy}:${raw}`);
+    if (!result.allowed) {
+      next(new AppError("rate_limited", { retryAfterSeconds: result.retryAfterSeconds }));
+      return;
+    }
+    next();
+  };
+
+  // Express is handed a void-returning function: a middleware that returns a
+  // promise has its rejection swallowed rather than reaching the error
+  // handler, so the rejection is routed to next() explicitly.
+  return (req, _res, next) => {
+    check(req, next).catch(next);
   };
 }

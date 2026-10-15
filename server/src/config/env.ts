@@ -69,7 +69,7 @@ const SigningKeysSchema = z
       });
       return z.NEVER;
     }
-    return parsed;
+    return parsed as unknown[];
   })
   .pipe(
     z

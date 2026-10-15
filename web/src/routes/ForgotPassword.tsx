@@ -74,7 +74,13 @@ export function ForgotPassword(): JSX.Element {
       description="We will email you a link to choose a new password."
       footer={<PreservedLink to="/login">Back to sign in</PreservedLink>}
     >
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        noValidate
+        onSubmit={(event) => {
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
+      >
         {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
 
         <FormField label="Email" required error={errors.email?.message}>

@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { env } from "../config/env.js";
 import { logger } from "../util/logger.js";
 
@@ -55,10 +55,17 @@ export interface CredentialStore {
 
 /* -------------------------------- Supabase -------------------------------- */
 
-let admin: SupabaseClient | undefined;
+/**
+ * The client type as this version of the SDK constructs it. Taken from
+ * createClient rather than the exported SupabaseClient, whose default
+ * generics do not match what the factory returns.
+ */
+type Client = ReturnType<typeof createClient>;
+
+let admin: Client | undefined;
 
 /** Service-role client. Full access, so it is confined to this module. */
-function adminClient(): SupabaseClient {
+function adminClient(): Client {
   admin ??= createClient(env().SUPABASE_URL, env().SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -66,7 +73,7 @@ function adminClient(): SupabaseClient {
 }
 
 /** A fresh anon-style client used for one operation, holding no session. */
-function scopedClient(): SupabaseClient {
+function scopedClient(): Client {
   return createClient(env().SUPABASE_URL, env().SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -81,8 +88,8 @@ interface SupabaseUserLike {
 }
 
 function toCredentialUser(user: SupabaseUserLike): CredentialUser {
-  const metadata = user.user_metadata ?? {};
-  const rawName = metadata["name"] ?? metadata["full_name"];
+  const metadata: Record<string, unknown> = user.user_metadata ?? {};
+  const rawName: unknown = metadata["name"] ?? metadata["full_name"];
   return {
     userId: user.id,
     email: user.email ?? "",
@@ -112,7 +119,7 @@ export const supabaseCredentials: CredentialStore = {
       return { kind: "rejected" };
     }
 
-    const user = toCredentialUser(data.user as SupabaseUserLike);
+    const user = toCredentialUser(data.user);
 
     if (!user.emailVerified) {
       // The caller turns this into the same generic response as a rejection;
@@ -242,7 +249,7 @@ export const supabaseCredentials: CredentialStore = {
       logProviderFailure("admin.getUserById", error?.status);
       return undefined;
     }
-    return toCredentialUser(data.user as SupabaseUserLike);
+    return toCredentialUser(data.user);
   },
 };
 

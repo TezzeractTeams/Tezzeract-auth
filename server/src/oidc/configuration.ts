@@ -52,6 +52,23 @@ export function buildConfiguration(): Configuration {
 
     // Authorization Code only. Listing just this response type is what makes
     // the implicit and hybrid flows unavailable rather than merely discouraged.
+    /**
+     * Endpoint paths.
+     *
+     * Declared explicitly because the library's defaults are /auth, /me and
+     * /session/end, while the API contract specifies /authorize, /userinfo
+     * and /end_session. The discovery document is generated from these, so
+     * clients pick them up without any hardcoded paths.
+     */
+    routes: {
+      authorization: "/authorize",
+      token: "/token",
+      jwks: "/jwks",
+      userinfo: "/userinfo",
+      end_session: "/end_session",
+      revocation: "/revocation",
+    },
+
     // Authorization Code only. Grant types are constrained per client below
     // and by the disabled features, so there is no provider-level list.
     responseTypes: ["code"],
@@ -212,7 +229,9 @@ export function buildConfiguration(): Configuration {
       if (!user) return undefined;
       return {
         accountId: sub,
-        async claims() {
+        // Not async: the provider awaits the result either way, and there
+        // is nothing here to await.
+        claims() {
           return {
             sub,
             email: user.email,

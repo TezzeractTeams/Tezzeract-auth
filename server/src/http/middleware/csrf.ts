@@ -19,6 +19,14 @@ import { AppError } from "../errors.js";
 const CSRF_COOKIE = "tz_csrf";
 export const CSRF_HEADER = "x-csrf-token";
 
+/**
+ * The cookie holds `token|hash`, but only the `token` half is compared
+ * against the request header. A client that echoes the whole cookie value
+ * fails validation, so the delimiter is part of the contract with the
+ * frontend; web/src/api/auth.ts splits on it.
+ */
+export const CSRF_DELIMITER = "|";
+
 const { doubleCsrfProtection, generateToken } = doubleCsrf({
   getSecret: () => env().CSRF_SECRET,
   cookieName: CSRF_COOKIE,
@@ -32,8 +40,26 @@ const { doubleCsrfProtection, generateToken } = doubleCsrf({
   // GET/HEAD/OPTIONS change nothing and are exempt. Every other method,
   // including the password and MFA endpoints, is checked.
   ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-  getTokenFromRequest: (req) => req.headers[CSRF_HEADER],
-  getSessionIdentifier: (req) => req.cookies?.["_session"] ?? req.ip ?? "anonymous",
+  getTokenFromRequest: (req): string | undefined => {
+    const header: unknown = req.headers[CSRF_HEADER];
+    if (typeof header === "string") return header;
+    if (Array.isArray(header) && typeof header[0] === "string") return header[0];
+    return undefined;
+  },
+  /**
+   * Binds the token to the browser's session where there is one, falling back
+   * to the address before sign-in. The session cookie is signed, so
+   * cookie-parser moves it to signedCookies.
+   */
+  getSessionIdentifier: (req): string => {
+    const signed: unknown = (req as { signedCookies?: Record<string, unknown> }).signedCookies?.[
+      "_session"
+    ];
+    if (typeof signed === "string") return signed;
+    const plain: unknown = (req as { cookies?: Record<string, unknown> }).cookies?.["_session"];
+    if (typeof plain === "string") return plain;
+    return req.ip ?? "anonymous";
+  },
 });
 
 /** Issue or refresh the CSRF cookie. Mounted on the token-seeding route. */

@@ -100,7 +100,13 @@ export function Signup(): JSX.Element {
         </>
       }
     >
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        noValidate
+        onSubmit={(event) => {
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
+      >
         {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
 
         <FormField label="Full name" required error={errors.name?.message}>

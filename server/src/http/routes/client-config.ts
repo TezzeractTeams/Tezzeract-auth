@@ -16,7 +16,7 @@ export function clientConfigRoutes(): Router {
 
   router.get(
     "/client-config",
-    asyncRoute(async (req, res) => {
+    asyncRoute((req, res) => {
       // An unknown or absent client_id is not an error: the handler answers
       // with Tezzeract defaults so a bad query parameter degrades to the
       // default brand rather than an error screen.

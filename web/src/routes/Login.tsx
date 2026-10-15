@@ -51,7 +51,9 @@ export function Login(): JSX.Element {
       const result = await api.login(values);
 
       if ("mfa_required" in result) {
-        navigate(linkTo("/mfa"));
+        // navigate() returns a promise in react-router v7; there is nothing
+        // to do after the transition, so it is explicitly not awaited.
+        void navigate(linkTo("/mfa"));
         return;
       }
 
@@ -74,7 +76,13 @@ export function Login(): JSX.Element {
         </>
       }
     >
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        noValidate
+        onSubmit={(event) => {
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
+      >
         {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
 
         <FormField label="Email" required error={errors.email?.message}>
