@@ -27,47 +27,64 @@ export const CSRF_HEADER = "x-csrf-token";
  */
 export const CSRF_DELIMITER = "|";
 
-const { doubleCsrfProtection, generateToken } = doubleCsrf({
-  getSecret: () => env().CSRF_SECRET,
-  cookieName: CSRF_COOKIE,
-  cookieOptions: {
-    httpOnly: false,
-    secure: isProduction(),
-    sameSite: "lax",
-    path: "/",
-  },
-  size: 32,
-  // GET/HEAD/OPTIONS change nothing and are exempt. Every other method,
-  // including the password and MFA endpoints, is checked.
-  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-  getTokenFromRequest: (req): string | undefined => {
-    const header: unknown = req.headers[CSRF_HEADER];
-    if (typeof header === "string") return header;
-    if (Array.isArray(header) && typeof header[0] === "string") return header[0];
-    return undefined;
-  },
-  /**
-   * Binds the token to the browser's session where there is one, falling back
-   * to the address before sign-in. The session cookie is signed, so
-   * cookie-parser moves it to signedCookies.
-   */
-  getSessionIdentifier: (req): string => {
-    const signed: unknown = (req as { signedCookies?: Record<string, unknown> }).signedCookies?.[
-      "_session"
-    ];
-    if (typeof signed === "string") return signed;
-    const plain: unknown = (req as { cookies?: Record<string, unknown> }).cookies?.["_session"];
-    if (typeof plain === "string") return plain;
-    return req.ip ?? "anonymous";
-  },
-});
+/**
+ * Built on first use, not at import.
+ *
+ * cookieOptions.secure depends on the parsed environment, and reading it at
+ * module scope meant env was parsed as a side effect of an import — before
+ * server.ts had a chance to call parseEnv() and report every missing variable
+ * at once. A missing secret then surfaced as an uncaught error with a stack
+ * trace instead of the startup report.
+ */
+let utilities: ReturnType<typeof doubleCsrf> | undefined;
 
-/** Issue or refresh the CSRF cookie. Mounted on the token-seeding route. */
-export const issueCsrfToken = generateToken;
+function csrf(): ReturnType<typeof doubleCsrf> {
+  utilities ??= doubleCsrf({
+    getSecret: () => env().CSRF_SECRET,
+    cookieName: CSRF_COOKIE,
+    cookieOptions: {
+      httpOnly: false,
+      secure: isProduction(),
+      sameSite: "lax",
+      path: "/",
+    },
+    size: 32,
+    // GET/HEAD/OPTIONS change nothing and are exempt. Every other method,
+    // including the password and MFA endpoints, is checked.
+    ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+    getTokenFromRequest: (req): string | undefined => {
+      const header: unknown = req.headers[CSRF_HEADER];
+      if (typeof header === "string") return header;
+      if (Array.isArray(header) && typeof header[0] === "string") return header[0];
+      return undefined;
+    },
+    /**
+     * Binds the token to the browser's session where there is one, falling back
+     * to the address before sign-in. The session cookie is signed, so
+     * cookie-parser moves it to signedCookies.
+     */
+    getSessionIdentifier: (req): string => {
+      const signed: unknown = (req as { signedCookies?: Record<string, unknown> }).signedCookies?.[
+        "_session"
+      ];
+      if (typeof signed === "string") return signed;
+      const plain: unknown = (req as { cookies?: Record<string, unknown> }).cookies?.["_session"];
+      if (typeof plain === "string") return plain;
+      return req.ip ?? "anonymous";
+    },
+  });
+  return utilities;
+}
+
+/** Issue or refresh the CSRF cookie. Called by the token-seeding route. */
+export const issueCsrfToken: ReturnType<typeof doubleCsrf>["generateToken"] = (req, res, ...rest) =>
+  csrf().generateToken(req, res, ...rest);
 
 /** Reject a state-changing request without a matching token. */
 export const csrfProtection: RequestHandler = (req, res, next) => {
-  doubleCsrfProtection(req, res, (error?: unknown) => {
+  csrf().doubleCsrfProtection(req, res, (error?: unknown) => {
+    // The library's own error carries a status and message; ours carries the
+    // contract's error code, so the response shape stays uniform.
     if (error) {
       next(new AppError("csrf_failed"));
       return;
@@ -75,3 +92,8 @@ export const csrfProtection: RequestHandler = (req, res, next) => {
     next();
   });
 };
+
+/** Test seam: rebuild the utilities after changing env. */
+export function resetCsrfForTests(): void {
+  utilities = undefined;
+}
