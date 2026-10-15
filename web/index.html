@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      A sign-in page has nothing to gain from being indexed and something to
+      lose: indexed auth URLs carry interaction ids and get crawled. Paired
+      with the X-Robots-Tag header the server sends.
+    -->
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <title>Sign in · Tezzeract</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

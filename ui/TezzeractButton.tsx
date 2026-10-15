@@ -8,9 +8,15 @@ export interface TezzeractButtonProps extends React.ButtonHTMLAttributes<HTMLBut
 
 export const TezzeractButton = React.forwardRef<HTMLButtonElement, TezzeractButtonProps>(
   ({ className, fullWidth = false, children, ...props }, ref) => {
-    // Base styles from Figma with smooth transitions
+    // Base styles from Figma with smooth transitions.
+    //
+    // The two gradients come from the .gradient-primary utilities in
+    // tailwind-preset.js rather than inline hex, so a host app can re-theme
+    // the button by setting --tz-accent / --tz-accent-deep. With those
+    // variables unset the utilities fall back to the original Figma values,
+    // so rendering is unchanged.
     const baseStyles =
-      "inline-flex flex-row items-center text-[14px] justify-center gap-2 font-thin focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden whitespace-nowrap";
+      "inline-flex flex-row items-center text-[14px] justify-center gap-2 font-thin focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[color:var(--tz-accent,#009BE9)] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden whitespace-nowrap";
 
     // Layout and spacing
     const layoutStyles = "max-h-10 px-6 py-3 rounded-xl";
@@ -29,9 +35,9 @@ export const TezzeractButton = React.forwardRef<HTMLButtonElement, TezzeractButt
           layoutStyles,
           borderStyles,
           widthStyle,
-          "bg-[radial-gradient(64.46%_80%_at_50.53%_0%,#009BE9_0%,#00378A_100%)]",
+          "gradient-primary",
           "before:content-[''] before:absolute before:inset-0 before:rounded-xl before:opacity-0 before:transition-opacity before:duration-300 before:ease-in-out",
-          "before:bg-[radial-gradient(93.12%_100%_at_50.53%_0%,#009BE9_0%,#00378A_100%)]",
+          "before:gradient-primary-hover",
           "hover:before:opacity-100",
           "hover:shadow-[0_0_10px_0_rgba(0,169,238,0.40)]",
           "transition-shadow duration-400 ease-in-out",

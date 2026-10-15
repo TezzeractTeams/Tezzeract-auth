@@ -2,13 +2,16 @@ import * as React from "react";
 import { cn } from "./utils/cn";
 
 interface FormFieldProps {
-  label?: string;
-  required?: boolean;
-  error?: string;
+  // Written as `?: T | undefined` rather than `?: T` so that consumers
+  // compiling with exactOptionalPropertyTypes can pass a value that may be
+  // undefined — which is exactly what a form library's error field is.
+  label?: string | undefined;
+  required?: boolean | undefined;
+  error?: string | undefined;
   /** Helper text rendered under the control, announced alongside the error. */
-  hint?: string;
+  hint?: string | undefined;
   children: React.ReactNode;
-  className?: string;
+  className?: string | undefined;
 }
 
 interface FormFieldContextValue {

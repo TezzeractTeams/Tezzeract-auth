@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * The @ui library had no token file: its components carry hardcoded Tailwind
+ * grays and blues. These variables are seeded with exactly those values, so
+ * the default rendering of every @ui component is unchanged, and they give
+ * per-client theming something to override. Nothing in this app hardcodes a
+ * brand colour; components reference these.
+ */
+:root {
+  /* Tezzeract defaults, matching the @ui TezzeractButton gradient. */
+  --tz-accent: #009be9;
+  --tz-accent-deep: #00378a;
+
+  /* Surfaces, matching @ui's Card and Input. Light theme. */
+  --tz-bg: #f7f9fc;
+  --tz-surface: #ffffff;
+  --tz-fg: #111827; /* gray-900 */
+  --tz-muted: #6b7280; /* gray-500 */
+  --tz-border: #e5e7eb; /* gray-200 */
+  --tz-danger: #dc2626; /* red-600 */
+  --tz-radius: 0.75rem;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--tz-bg);
+  color: var(--tz-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * A subtle accent wash behind the card. Derived from --tz-accent rather than
+ * written as a colour, so it follows whatever the client theme sets.
+ */
+.tz-page-backdrop {
+  background-image: radial-gradient(
+    80% 60% at 50% 0%,
+    color-mix(in srgb, var(--tz-accent) 12%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Respect a reduced-motion preference for the button's hover transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
