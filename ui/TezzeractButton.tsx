@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/shared/utils/cn";
+import { cn } from "./utils/cn";
 
 export interface TezzeractButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
@@ -9,14 +9,15 @@ export interface TezzeractButtonProps extends React.ButtonHTMLAttributes<HTMLBut
 export const TezzeractButton = React.forwardRef<HTMLButtonElement, TezzeractButtonProps>(
   ({ className, fullWidth = false, children, ...props }, ref) => {
     // Base styles from Figma with smooth transitions
-    const baseStyles = "inline-flex flex-row items-center text-[14px] justify-center gap-2 font-thin focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden whitespace-nowrap";
-    
+    const baseStyles =
+      "inline-flex flex-row items-center text-[14px] justify-center gap-2 font-thin focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden whitespace-nowrap";
+
     // Layout and spacing
     const layoutStyles = "max-h-10 px-6 py-3 rounded-xl";
-    
+
     // Border and text
     const borderStyles = "border border-white/40 text-white";
-    
+
     // Width style
     const widthStyle = fullWidth ? "w-full" : "";
 
@@ -34,15 +35,14 @@ export const TezzeractButton = React.forwardRef<HTMLButtonElement, TezzeractButt
           "hover:before:opacity-100",
           "hover:shadow-[0_0_10px_0_rgba(0,169,238,0.40)]",
           "transition-shadow duration-400 ease-in-out",
-          className
+          className,
         )}
         {...props}
       >
         <div className="relative z-10 inline-flex items-center gap-2">{children}</div>
       </button>
     );
-  }
+  },
 );
 
 TezzeractButton.displayName = "TezzeractButton";
-

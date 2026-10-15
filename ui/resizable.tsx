@@ -1,10 +1,10 @@
-import * as React from "react"
-import { cn } from "@/shared/utils/cn"
+import * as React from "react";
+import { cn } from "./utils/cn";
 
 const ResizablePanelGroup = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    direction?: "horizontal" | "vertical"
+    direction?: "horizontal" | "vertical";
   }
 >(({ className, direction = "horizontal", children, ...props }, ref) => (
   <div
@@ -12,37 +12,33 @@ const ResizablePanelGroup = React.forwardRef<
     className={cn(
       "flex h-full w-full",
       direction === "horizontal" ? "flex-row" : "flex-col",
-      className
+      className,
     )}
     {...props}
   >
     {children}
   </div>
-))
-ResizablePanelGroup.displayName = "ResizablePanelGroup"
+));
+ResizablePanelGroup.displayName = "ResizablePanelGroup";
 
 const ResizablePanel = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    defaultSize?: number
-    minSize?: number
-    maxSize?: number
+    defaultSize?: number;
+    minSize?: number;
+    maxSize?: number;
   }
 >(({ className, children, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex-1", className)}
-    {...props}
-  >
+  <div ref={ref} className={cn("flex-1", className)} {...props}>
     {children}
   </div>
-))
-ResizablePanel.displayName = "ResizablePanel"
+));
+ResizablePanel.displayName = "ResizablePanel";
 
 const ResizableHandle = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    direction?: "horizontal" | "vertical"
+    direction?: "horizontal" | "vertical";
   }
 >(({ className, direction = "horizontal", ...props }, ref) => (
   <div
@@ -50,18 +46,15 @@ const ResizableHandle = React.forwardRef<
     className={cn(
       "relative flex items-center justify-center bg-transparent",
       direction === "horizontal" ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize",
-      className
+      className,
     )}
     {...props}
   >
     <div
-      className={cn(
-        "z-10 bg-border",
-        direction === "horizontal" ? "h-full w-px" : "h-px w-full"
-      )}
+      className={cn("z-10 bg-border", direction === "horizontal" ? "h-full w-px" : "h-px w-full")}
     />
   </div>
-))
-ResizableHandle.displayName = "ResizableHandle"
+));
+ResizableHandle.displayName = "ResizableHandle";
 
-export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle };

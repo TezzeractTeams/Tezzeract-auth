@@ -1,0 +1,37 @@
+{
+  "name": "@tezzeract/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./utils/cn": "./utils/cn.ts"
+  },
+  "files": [
+    "*.tsx",
+    "index.ts",
+    "utils",
+    "assets",
+    "types",
+    "tailwind-preset.js"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "2.5.5"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.17",
+    "react": "18.3.1",
+    "typescript": "5.7.2"
+  }
+}
