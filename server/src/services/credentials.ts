@@ -267,11 +267,19 @@ export const supabaseCredentials: CredentialStore = {
       return { ok: false };
     }
 
-    return { ok: true, authorizationUrl: data.url, codeVerifier, flowId };
+    return {
+      ok: true,
+      authorizationUrl: data.url,
+      codeVerifier,
+      ...(flowId !== undefined ? { flowId } : {}),
+    };
   },
 
   async completeOAuth({ code, codeVerifier, flowId }) {
-    const { client } = oauthClient({ codeVerifier, flowId });
+    const { client } = oauthClient({
+      codeVerifier,
+      ...(flowId !== undefined ? { flowId } : {}),
+    });
     const { data, error } = flowId
       ? await client.auth.exchangeCodeForSession(code, { flowId })
       : await client.auth.exchangeCodeForSession(code);

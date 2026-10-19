@@ -115,7 +115,7 @@ export function oauthRoutes(provider: Provider): Router {
       const outcome = await credentials.completeOAuth({
         code: parsed.data.code,
         codeVerifier: pendingOAuth.codeVerifier,
-        flowId: pendingOAuth.flowId,
+        ...(pendingOAuth.flowId !== undefined ? { flowId: pendingOAuth.flowId } : {}),
       });
 
       if (outcome.kind === "rejected" || outcome.kind === "email_unverified") {

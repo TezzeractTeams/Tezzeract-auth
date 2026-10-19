@@ -1,6 +1,6 @@
 import { doubleCsrf } from "csrf-csrf";
 import type { RequestHandler } from "express";
-import { cookieSecure, env, isProduction } from "../../config/env.js";
+import { cookieSecure, env } from "../../config/env.js";
 import { AppError } from "../errors.js";
 
 /**
