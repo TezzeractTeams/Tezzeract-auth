@@ -57,6 +57,8 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   // Configuration and migration failures land here. Printed rather than
   // logged so the message survives a logger that is not yet configured.
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  // The stack is included because a bare message (e.g. "Invalid URL" from a
+  // malformed DATABASE_URL) is otherwise impossible to localise.
+  process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
   process.exit(1);
 });
