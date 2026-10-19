@@ -30,7 +30,12 @@ describe("client registry", () => {
   });
 
   it("exposes only branding fields to the browser", () => {
-    expect(Object.keys(getClientConfig("talk")).sort()).toEqual(["accentColor", "logoUrl", "name"]);
+    expect(Object.keys(getClientConfig("talk")).sort()).toEqual([
+      "accentColor",
+      "logoUrl",
+      "name",
+      "postLoginWelcome",
+    ]);
   });
 });
 

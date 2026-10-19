@@ -9,7 +9,7 @@ import {
   LOCALHOST_REDIRECT_URIS,
   PRODUCTION_CLIENTS,
 } from "../config/clients.seed.js";
-import { env } from "../config/env.js";
+import { devRedirectUri, env, postLoginWelcome } from "../config/env.js";
 
 /**
  * Client registry lookups.
@@ -24,19 +24,29 @@ let registry: Map<string, ClientRecord> | undefined;
 function build(): Map<string, ClientRecord> {
   const allowLocalhost = env().ALLOW_LOCALHOST_CLIENTS;
 
+  const devRedirect = devRedirectUri();
+
   const records = PRODUCTION_CLIENTS.map((client) => {
-    if (!allowLocalhost) return client;
-    return {
-      ...client,
-      redirect_uris: [
-        ...client.redirect_uris,
-        ...(LOCALHOST_REDIRECT_URIS[client.client_id] ?? []),
-      ],
-      post_logout_redirect_uris: [
-        ...client.post_logout_redirect_uris,
+    let redirect_uris = client.redirect_uris;
+    let post_logout_redirect_uris = client.post_logout_redirect_uris;
+
+    if (allowLocalhost) {
+      redirect_uris = [...redirect_uris, ...(LOCALHOST_REDIRECT_URIS[client.client_id] ?? [])];
+      post_logout_redirect_uris = [
+        ...post_logout_redirect_uris,
         ...(LOCALHOST_POST_LOGOUT_URIS[client.client_id] ?? []),
-      ],
-    };
+      ];
+    }
+
+    if (devRedirect && client.client_id === DEFAULT_CLIENT_ID) {
+      redirect_uris = [...redirect_uris, devRedirect];
+    }
+
+    if (redirect_uris === client.redirect_uris && post_logout_redirect_uris === client.post_logout_redirect_uris) {
+      return client;
+    }
+
+    return { ...client, redirect_uris, post_logout_redirect_uris };
   });
 
   // Re-validate after the localhost merge: the merged list is what the
@@ -83,8 +93,16 @@ export function findClient(clientId: string | undefined): ClientRecord | undefin
 export function getClientConfig(clientId: string | undefined): ClientConfig {
   const record = findClient(clientId) ?? all().get(DEFAULT_CLIENT_ID);
   if (!record) throw new Error("client registry is empty");
-  const { name, logoUrl, accentColor } = record;
-  return { name, logoUrl, accentColor };
+  const { name, logoUrl, wordmarkUrl, accentColor } = record;
+  const branding = wordmarkUrl
+    ? { name, logoUrl, wordmarkUrl, accentColor }
+    : { name, logoUrl, accentColor };
+  const devUri = devRedirectUri();
+  return {
+    ...branding,
+    postLoginWelcome: postLoginWelcome(),
+    ...(devUri ? { devRedirectUri: devUri } : {}),
+  };
 }
 
 /**

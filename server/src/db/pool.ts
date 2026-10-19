@@ -9,14 +9,28 @@ import { logger } from "../util/logger.js";
 
 let pool: Pool | undefined;
 
+function poolOptions(): ConstructorParameters<typeof Pool>[0] {
+  const connectionString = env().DATABASE_URL;
+  const options: ConstructorParameters<typeof Pool>[0] = {
+    connectionString,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+  };
+
+  // Supabase Postgres (direct or pooler) requires TLS. The hosted CA is not
+  // always in local trust stores, so verification is relaxed here only for
+  // *.supabase.co hosts.
+  if (connectionString.includes("supabase.co")) {
+    options.ssl = { rejectUnauthorized: false };
+  }
+
+  return options;
+}
+
 export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({
-      connectionString: env().DATABASE_URL,
-      max: 10,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
-    });
+    pool = new Pool(poolOptions());
     // An idle client erroring must not take the process down.
     pool.on("error", (error) => {
       logger.error({ err: error }, "idle postgres client error");

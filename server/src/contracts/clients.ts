@@ -48,18 +48,28 @@ export const RedirectUriSchema = z
     }
   });
 
-/** Branding returned to the browser by GET /api/client-config. */
-export const ClientConfigSchema = z
+/** Branding fields stored per client and returned to the browser. */
+export const ClientBrandingSchema = z
   .object({
     name: z.string().min(1).max(64),
     logoUrl: z.string().max(2048),
+    /** Optional wordmark shown to the right of logoUrl on the login header. */
+    wordmarkUrl: z.string().max(2048).optional(),
     accentColor: HexColorSchema,
   })
   .strict();
+
+/** GET /api/client-config response. */
+export const ClientConfigSchema = ClientBrandingSchema.extend({
+  /** When true, sign-in success goes to /welcome before OIDC resume. */
+  postLoginWelcome: z.boolean(),
+  /** Present in development when DEV_REDIRECT_URI is configured. */
+  devRedirectUri: z.string().url().optional(),
+}).strict();
 export type ClientConfig = z.infer<typeof ClientConfigSchema>;
 
 /** The full server-side record. Never sent to the browser in full. */
-export const ClientRecordSchema = ClientConfigSchema.extend({
+export const ClientRecordSchema = ClientBrandingSchema.extend({
   client_id: z
     .string()
     .min(1)

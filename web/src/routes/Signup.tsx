@@ -8,6 +8,7 @@ import { Alert } from "../components/Alert";
 import { AuthLayout } from "../components/AuthLayout";
 import { PasswordInput } from "../components/PasswordInput";
 import { PreservedLink } from "../components/PreservedLink";
+import { AuthDivider, GoogleSignInButton } from "../components/GoogleSignInButton";
 import { SubmitButton } from "../components/SubmitButton";
 import { useSubmitError } from "../components/useSubmitError";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../api/types";
@@ -100,14 +101,18 @@ export function Signup(): JSX.Element {
         </>
       }
     >
-      <form
-        noValidate
-        onSubmit={(event) => {
-          void handleSubmit(onSubmit)(event);
-        }}
-        className="space-y-4"
-      >
-        {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
+      <div className="space-y-4">
+        <GoogleSignInButton />
+        <AuthDivider />
+
+        <form
+          noValidate
+          onSubmit={(event) => {
+            void handleSubmit(onSubmit)(event);
+          }}
+          className="space-y-4"
+        >
+          {submitError.error && <Alert variant="error">{submitError.error}</Alert>}
 
         <FormField label="Full name" required error={errors.name?.message}>
           <Input autoComplete="name" autoFocus placeholder="Ada Lovelace" {...register("name")} />
@@ -135,10 +140,11 @@ export function Signup(): JSX.Element {
           <PasswordInput autoComplete="new-password" {...register("confirmPassword")} />
         </FormField>
 
-        <SubmitButton pending={isSubmitting} pendingLabel="Creating account…">
-          Create account
-        </SubmitButton>
-      </form>
+          <SubmitButton pending={isSubmitting} pendingLabel="Creating account…">
+            Create account
+          </SubmitButton>
+        </form>
+      </div>
     </AuthLayout>
   );
 }

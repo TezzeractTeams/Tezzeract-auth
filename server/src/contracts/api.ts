@@ -59,7 +59,15 @@ export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export const MfaRequiredResponseSchema = z.object({ mfa_required: z.literal(true) }).strict();
 export type MfaRequiredResponse = z.infer<typeof MfaRequiredResponseSchema>;
 
-export const LoginResponseSchema = z.union([RedirectResponseSchema, MfaRequiredResponseSchema]);
+/** Sign-in succeeded; the UI should route to /welcome before OIDC resume. */
+export const WelcomeResponseSchema = z.object({ welcome: z.literal(true) }).strict();
+export type WelcomeResponse = z.infer<typeof WelcomeResponseSchema>;
+
+export const LoginResponseSchema = z.union([
+  RedirectResponseSchema,
+  MfaRequiredResponseSchema,
+  WelcomeResponseSchema,
+]);
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
 /* --------------------------------- signup --------------------------------- */
@@ -93,7 +101,7 @@ export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
 export const MfaVerifyRequestSchema = z.object({ code: MfaCodeSchema }).strict();
 export type MfaVerifyRequest = z.infer<typeof MfaVerifyRequestSchema>;
 
-export const MfaVerifyResponseSchema = RedirectResponseSchema;
+export const MfaVerifyResponseSchema = z.union([RedirectResponseSchema, WelcomeResponseSchema]);
 export type MfaVerifyResponse = z.infer<typeof MfaVerifyResponseSchema>;
 
 export const ResendVerificationRequestSchema = z.object({ email: EmailSchema }).strict();

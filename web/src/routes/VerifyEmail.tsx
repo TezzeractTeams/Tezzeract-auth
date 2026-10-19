@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormField, Input } from "@tezzeract/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
@@ -27,15 +27,35 @@ const ResendSchema = z.object({
 
 type ResendValues = z.infer<typeof ResendSchema>;
 
+/** Supabase puts outcomes in the URL hash (`#error=…`), not always in `?query`. */
+function authCallbackParams(searchParams: URLSearchParams): URLSearchParams {
+  const hash = window.location.hash.replace(/^#/, "");
+  if (hash === "") return searchParams;
+  const fromHash = new URLSearchParams(hash);
+  const merged = new URLSearchParams(searchParams);
+  for (const [key, value] of fromHash) {
+    if (!merged.has(key)) merged.set(key, value);
+  }
+  return merged;
+}
+
 export function VerifyEmail(): JSX.Element {
   const api = useApi();
   const [searchParams] = useSearchParams();
   const submitError = useSubmitError();
   const [resent, setResent] = useState(false);
 
+  const callbackParams = useMemo(
+    () => authCallbackParams(searchParams),
+    [searchParams],
+  );
+
   // Supabase appends `error` / `error_description` when a link has expired.
-  const linkFailed = searchParams.get("error") !== null;
-  const verified = searchParams.get("verified") === "true";
+  const linkFailed = callbackParams.get("error") !== null;
+  const verified =
+    searchParams.get("verified") === "true" ||
+    callbackParams.get("type") === "signup" ||
+    callbackParams.get("access_token") !== null;
   const prefill = searchParams.get("email") ?? "";
 
   const {

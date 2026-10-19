@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ClientConfigQuerySchema } from "../../contracts/clients.js";
 import { getClientConfig } from "../../services/clients.js";
 import { asyncRoute } from "../errors.js";
-import { issueCsrfToken } from "../middleware/csrf.js";
+import { seedCsrfToken } from "../middleware/csrf.js";
 
 /**
  * Branding for the login screens, plus the CSRF token seed.
@@ -27,7 +27,7 @@ export function clientConfigRoutes(): Router {
       // the body: the cookie is readable by script by design, which is what
       // makes double-submit work, and the response shape stays exactly the
       // { name, logoUrl, accentColor } the contract specifies.
-      issueCsrfToken(req, res);
+      seedCsrfToken(req, res);
 
       res.setHeader("Cache-Control", "no-store");
       res.status(200).json(getClientConfig(clientId));

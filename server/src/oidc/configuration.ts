@@ -1,5 +1,5 @@
 import type { Configuration, KoaContextWithOIDC } from "oidc-provider";
-import { env } from "../config/env.js";
+import { cookieSecure, env } from "../config/env.js";
 import { listClients } from "../services/clients.js";
 import { getSnapshot } from "../services/memberships.js";
 import { credentials } from "../services/credentials.js";
@@ -113,14 +113,14 @@ export function buildConfiguration(): Configuration {
       keys: [env().COOKIE_SECRET],
       long: {
         httpOnly: true,
-        secure: env().NODE_ENV === "production",
+        secure: cookieSecure(),
         sameSite: "lax",
         path: "/",
         signed: true,
       },
       short: {
         httpOnly: true,
-        secure: env().NODE_ENV === "production",
+        secure: cookieSecure(),
         sameSite: "lax",
         path: "/",
         signed: true,

@@ -11,10 +11,12 @@ import {
 } from "../../contracts/api.js";
 import { credentials } from "../../services/credentials.js";
 import {
+  abandonInteraction,
   completeInteraction,
   currentInteraction,
   destroySession,
   readPendingMfa,
+  readSessionAccountId,
   storePendingMfa,
 } from "../../services/sessions.js";
 import { lockoutRemaining, recordFailure, recordSuccess } from "../../services/ratelimit.js";
@@ -24,6 +26,13 @@ import { csrfProtection } from "../middleware/csrf.js";
 import { ipKey, limit } from "../middleware/ratelimit.js";
 import { withConstantTime } from "../timing.js";
 import { logger } from "../../util/logger.js";
+import {
+  POST_LOGIN_REDIRECT_COOKIE,
+  clearPostLoginRedirectCookie,
+  hasPostLoginWelcomeAccess,
+  postLoginWelcome,
+  setPostLoginRedirectCookie,
+} from "../post-login-welcome.js";
 
 /**
  * Transport for the authentication endpoints.
@@ -93,6 +102,12 @@ export function authRoutes(provider: Provider): Router {
       const redirectTo = await completeInteraction(provider, req, res, outcome.user.userId, {
         amr: ["pwd"],
       });
+      if (postLoginWelcome()) {
+        setPostLoginRedirectCookie(res, redirectTo);
+        await abandonInteraction(provider, req, res);
+        res.status(200).json({ welcome: true });
+        return;
+      }
       res.status(200).json({ redirect_to: redirectTo });
     }),
   );
@@ -110,7 +125,12 @@ export function authRoutes(provider: Provider): Router {
       // and declining to re-register an existing one must not be
       // distinguishable by duration.
       await withConstantTime(async () => {
-        await credentials.register({ name, email, password });
+        await credentials.register({
+          name,
+          email,
+          password,
+          redirectTo: `${env().AUTH_ISSUER}/verify-email?verified=true`,
+        });
       });
 
       res.status(200).json({ verify_email: true });
@@ -191,7 +211,64 @@ export function authRoutes(provider: Provider): Router {
       const redirectTo = await completeInteraction(provider, req, res, outcome.user.userId, {
         amr: ["pwd", "otp"],
       });
+      if (postLoginWelcome()) {
+        setPostLoginRedirectCookie(res, redirectTo);
+        await abandonInteraction(provider, req, res);
+        res.status(200).json({ welcome: true });
+        return;
+      }
       res.status(200).json({ redirect_to: redirectTo });
+    }),
+  );
+
+  /* ------------------------------ interaction ------------------------------ */
+
+  router.get(
+    "/interaction",
+    asyncRoute(async (req, res) => {
+      const interaction = await currentInteraction(provider, req, res);
+      res.status(200).json({ active: Boolean(interaction) });
+    }),
+  );
+
+  /* --------------------------- post-login welcome -------------------------- */
+
+  router.get(
+    "/welcome",
+    asyncRoute(async (req, res) => {
+      // interactionResult only parks login on the interaction; the provider
+      // session cookie is created when the browser hits the authorize resume
+      // URL. POST_LOGIN_WELCOME defers that hop, so access is gated on the
+      // signed resume cookie set at sign-in success instead.
+      if (postLoginWelcome()) {
+        if (!hasPostLoginWelcomeAccess(req)) fail("unauthenticated");
+      } else {
+        const accountId = await readSessionAccountId(provider, req, res);
+        if (!accountId) fail("unauthenticated");
+      }
+      res.status(200).json({ ok: true });
+    }),
+  );
+
+  router.get(
+    "/post-login-continue",
+    asyncRoute(async (req, res) => {
+      if (postLoginWelcome()) {
+        if (!hasPostLoginWelcomeAccess(req)) fail("unauthenticated");
+      } else {
+        const accountId = await readSessionAccountId(provider, req, res);
+        if (!accountId) fail("unauthenticated");
+      }
+
+      const signed = (req as { signedCookies?: Record<string, unknown> }).signedCookies?.[
+        POST_LOGIN_REDIRECT_COOKIE
+      ];
+      res.clearCookie(POST_LOGIN_REDIRECT_COOKIE, { path: "/" });
+      if (typeof signed !== "string") {
+        res.status(204).end();
+        return;
+      }
+      res.status(200).json({ redirect_to: signed });
     }),
   );
 
@@ -209,7 +286,7 @@ export function authRoutes(provider: Provider): Router {
         if (parsed.success) {
           await credentials.resendVerification({
             email: parsed.data.email,
-            redirectTo: `${env().AUTH_ISSUER}/verify-email`,
+            redirectTo: `${env().AUTH_ISSUER}/verify-email?verified=true`,
           });
         }
       });
@@ -230,6 +307,10 @@ export function authRoutes(provider: Provider): Router {
       await destroySession(provider, req, res).catch((error: unknown) => {
         logger.warn({ err: error }, "logout encountered an error");
       });
+      await abandonInteraction(provider, req, res).catch((error: unknown) => {
+        logger.warn({ err: error }, "logout could not abandon interaction");
+      });
+      clearPostLoginRedirectCookie(res);
 
       res.status(204).end();
     }),

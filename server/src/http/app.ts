@@ -11,6 +11,7 @@ import { logger, safeUrl } from "../util/logger.js";
 import { errorHandler, notFoundHandler } from "./errors.js";
 import { noIndex, noStore, securityHeaders } from "./middleware/security.js";
 import { authRoutes } from "./routes/auth.js";
+import { oauthRoutes } from "./routes/oauth.js";
 import { clientConfigRoutes } from "./routes/client-config.js";
 import { healthRoutes } from "./routes/health.js";
 
@@ -97,6 +98,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use("/api", noStore, express.json({ limit: "16kb" }));
   app.use("/api", clientConfigRoutes());
   app.use("/api", authRoutes(provider));
+  app.use("/api", oauthRoutes(provider));
   app.use("/api", notFoundHandler);
 
   /**

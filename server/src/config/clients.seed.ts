@@ -14,7 +14,8 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
   {
     client_id: "app",
     name: "Tezzeract",
-    logoUrl: "/brand/tezzeract.svg",
+    logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+    wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
     accentColor: "#009BE9",
     redirect_uris: ["https://app.tezzeract.com/auth/callback"],
     post_logout_redirect_uris: ["https://app.tezzeract.com/"],

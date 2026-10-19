@@ -12,7 +12,13 @@ import { ApiError } from "../api/types";
  * redirect, and that OIDC parameters survive navigation between screens.
  */
 
-const config = { name: "Tezzeract", logoUrl: "/brand/tezzeract.svg", accentColor: "#009BE9" };
+const config = {
+  name: "Tezzeract",
+  logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+  wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
+  accentColor: "#009BE9",
+  postLoginWelcome: false,
+};
 
 function stubApi(overrides: Partial<AuthApi> = {}): AuthApi {
   return {
@@ -24,6 +30,9 @@ function stubApi(overrides: Partial<AuthApi> = {}): AuthApi {
     verifyMfa: vi.fn(),
     resendVerification: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
+    getInteractionStatus: vi.fn().mockResolvedValue({ active: true }),
+    checkWelcomeAccess: vi.fn().mockResolvedValue(undefined),
+    getPostLoginContinue: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as AuthApi;
 }
@@ -88,6 +97,21 @@ describe("login screen", () => {
     expect(api.login).not.toHaveBeenCalled();
   });
 
+  it("offers Google sign-in via the server oauth route", async () => {
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...original, assign },
+    });
+
+    renderAt("/login", stubApi());
+    await userEvent.click(await screen.findByRole("button", { name: /continue with google/i }));
+    expect(assign).toHaveBeenCalledWith("/api/oauth/google");
+
+    Object.defineProperty(window, "location", { configurable: true, value: original });
+  });
+
   it("carries the OIDC parameters to signup and to forgot-password", async () => {
     renderAt("/login?interaction=abc123&client_id=talk", stubApi());
 
@@ -127,6 +151,21 @@ describe("forgot password", () => {
 });
 
 describe("signup", () => {
+  it("offers Google sign-in via the server oauth route", async () => {
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...original, assign },
+    });
+
+    renderAt("/signup", stubApi());
+    await userEvent.click(await screen.findByRole("button", { name: /continue with google/i }));
+    expect(assign).toHaveBeenCalledWith("/api/oauth/google");
+
+    Object.defineProperty(window, "location", { configurable: true, value: original });
+  });
+
   it("requires both passwords to match before submitting", async () => {
     const api = stubApi();
     renderAt("/signup", api);

@@ -43,10 +43,21 @@ export type AuthOutcome =
   | { kind: "email_unverified"; email: string }
   | { kind: "rejected" };
 
+export type OAuthProvider = "google";
+
 export interface CredentialStore {
   authenticate(input: { email: string; password: string }): Promise<AuthOutcome>;
   verifyMfa(input: { pending: PendingMfa; code: string }): Promise<AuthOutcome>;
-  register(input: { name: string; email: string; password: string }): Promise<void>;
+  beginOAuth(input: { provider: OAuthProvider; redirectTo: string }): Promise<
+    | { ok: true; authorizationUrl: string; codeVerifier: string; flowId?: string }
+    | { ok: false }
+  >;
+  completeOAuth(input: {
+    code: string;
+    codeVerifier: string;
+    flowId?: string;
+  }): Promise<AuthOutcome>;
+  register(input: { name: string; email: string; password: string; redirectTo: string }): Promise<void>;
   requestPasswordReset(input: { email: string; redirectTo: string }): Promise<void>;
   resetPassword(input: { token: string; password: string }): Promise<{ ok: boolean }>;
   resendVerification(input: { email: string; redirectTo: string }): Promise<void>;
@@ -77,6 +88,121 @@ function scopedClient(): Client {
   return createClient(env().SUPABASE_URL, env().SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+function supabaseAuthStorageKey(): string {
+  const ref = new URL(env().SUPABASE_URL).hostname.split(".")[0];
+  return `sb-${ref}-auth-token`;
+}
+
+function parseStoredVerifier(raw: string): string | undefined {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readPkceVerifier(
+  store: Map<string, string>,
+  flowId?: string | null,
+): string | undefined {
+  const storageKey = supabaseAuthStorageKey();
+  if (flowId) {
+    const slot = store.get(`${storageKey}-flow-${flowId}-code-verifier`);
+    if (slot) return parseStoredVerifier(slot);
+  }
+  const legacy = store.get(`${storageKey}-code-verifier`);
+  return legacy ? parseStoredVerifier(legacy) : undefined;
+}
+
+function seedPkceVerifier(
+  store: Map<string, string>,
+  codeVerifier: string,
+  flowId?: string,
+): void {
+  const storageKey = supabaseAuthStorageKey();
+  const encoded = JSON.stringify(codeVerifier);
+  store.set(`${storageKey}-code-verifier`, encoded);
+  if (flowId) {
+    store.set(`${storageKey}-flow-${flowId}-code-verifier`, encoded);
+  }
+}
+
+/**
+ * Supabase OAuth PKCE stores the code verifier in the client's auth storage.
+ * Custom storage is only wired when `persistSession` is true; with false the
+ * SDK uses an internal memory adapter and our adapter is ignored.
+ */
+function oauthClient(seed?: { codeVerifier: string; flowId?: string }): {
+  client: Client;
+  readVerifier: (flowId?: string | null) => string | undefined;
+} {
+  const store = new Map<string, string>();
+  if (seed) seedPkceVerifier(store, seed.codeVerifier, seed.flowId);
+
+  const storage = {
+    getItem: (key: string): string | null => store.get(key) ?? null,
+    setItem: (key: string, value: string): void => {
+      store.set(key, value);
+    },
+    removeItem: (key: string): void => {
+      store.delete(key);
+    },
+  };
+
+  const client = createClient(env().SUPABASE_URL, env().SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: false,
+      storage,
+      flowType: "pkce",
+    },
+  });
+
+  return {
+    client: client as Client,
+    readVerifier: (flowId) => readPkceVerifier(store, flowId),
+  };
+}
+
+async function outcomeFromSession(
+  client: Client,
+  user: SupabaseUserLike,
+  session: { access_token: string; refresh_token: string },
+): Promise<AuthOutcome> {
+  const credentialUser = toCredentialUser(user);
+
+  if (!credentialUser.emailVerified) {
+    return { kind: "email_unverified", email: credentialUser.email };
+  }
+
+  const verifiedFactor = user.factors?.find((factor) => factor.status === "verified");
+
+  if (!verifiedFactor) {
+    return { kind: "authenticated", user: credentialUser };
+  }
+
+  const { data: challenge, error: challengeError } = await client.auth.mfa.challenge({
+    factorId: verifiedFactor.id,
+  });
+
+  if (challengeError || !challenge) {
+    logProviderFailure("mfa.challenge", challengeError?.status);
+    return { kind: "rejected" };
+  }
+
+  return {
+    kind: "mfa_required",
+    pending: {
+      userId: credentialUser.userId,
+      factorId: verifiedFactor.id,
+      challengeId: challenge.id,
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+    },
+  };
 }
 
 interface SupabaseUserLike {
@@ -119,42 +245,43 @@ export const supabaseCredentials: CredentialStore = {
       return { kind: "rejected" };
     }
 
-    const user = toCredentialUser(data.user);
+    return outcomeFromSession(client, data.user as SupabaseUserLike, data.session);
+  },
 
-    if (!user.emailVerified) {
-      // The caller turns this into the same generic response as a rejection;
-      // it is distinguished here only so the verify-email screen can be shown
-      // to someone who already proved they know the password.
-      return { kind: "email_unverified", email: user.email };
-    }
-
-    const verifiedFactor = (data.user as SupabaseUserLike).factors?.find(
-      (factor) => factor.status === "verified",
-    );
-
-    if (!verifiedFactor) {
-      return { kind: "authenticated", user };
-    }
-
-    const { data: challenge, error: challengeError } = await client.auth.mfa.challenge({
-      factorId: verifiedFactor.id,
+  async beginOAuth({ provider, redirectTo }) {
+    const { client, readVerifier } = oauthClient();
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true },
     });
 
-    if (challengeError || !challenge) {
-      logProviderFailure("mfa.challenge", challengeError?.status);
+    if (error || !data.url) {
+      logProviderFailure("signInWithOAuth", error?.status);
+      return { ok: false };
+    }
+
+    const flowId = typeof data.flowId === "string" ? data.flowId : undefined;
+    const codeVerifier = readVerifier(flowId);
+    if (!codeVerifier) {
+      logger.warn({ operation: "signInWithOAuth" }, "pkce code verifier was not stored");
+      return { ok: false };
+    }
+
+    return { ok: true, authorizationUrl: data.url, codeVerifier, flowId };
+  },
+
+  async completeOAuth({ code, codeVerifier, flowId }) {
+    const { client } = oauthClient({ codeVerifier, flowId });
+    const { data, error } = flowId
+      ? await client.auth.exchangeCodeForSession(code, { flowId })
+      : await client.auth.exchangeCodeForSession(code);
+
+    if (error || !data.user || !data.session) {
+      logProviderFailure("exchangeCodeForSession", error?.status);
       return { kind: "rejected" };
     }
 
-    return {
-      kind: "mfa_required",
-      pending: {
-        userId: user.userId,
-        factorId: verifiedFactor.id,
-        challengeId: challenge.id,
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-      },
-    };
+    return outcomeFromSession(client, data.user as SupabaseUserLike, data.session);
   },
 
   async verifyMfa({ pending, code }) {
@@ -187,11 +314,11 @@ export const supabaseCredentials: CredentialStore = {
     return { kind: "authenticated", user };
   },
 
-  async register({ name, email, password }) {
+  async register({ name, email, password, redirectTo }) {
     const { error } = await scopedClient().auth.signUp({
       email,
       password,
-      options: { data: { name } },
+      options: { data: { name }, emailRedirectTo: redirectTo },
     });
 
     // Swallowed on purpose. The route answers { verify_email: true } whether

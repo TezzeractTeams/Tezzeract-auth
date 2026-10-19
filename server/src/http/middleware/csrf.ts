@@ -1,6 +1,6 @@
 import { doubleCsrf } from "csrf-csrf";
 import type { RequestHandler } from "express";
-import { env, isProduction } from "../../config/env.js";
+import { cookieSecure, env, isProduction } from "../../config/env.js";
 import { AppError } from "../errors.js";
 
 /**
@@ -44,7 +44,7 @@ function csrf(): ReturnType<typeof doubleCsrf> {
     cookieName: CSRF_COOKIE,
     cookieOptions: {
       httpOnly: false,
-      secure: isProduction(),
+      secure: cookieSecure(),
       sameSite: "lax",
       path: "/",
     },
@@ -79,6 +79,33 @@ function csrf(): ReturnType<typeof doubleCsrf> {
 /** Issue or refresh the CSRF cookie. Called by the token-seeding route. */
 export const issueCsrfToken: ReturnType<typeof doubleCsrf>["generateToken"] = (req, res, ...rest) =>
   csrf().generateToken(req, res, ...rest);
+
+/**
+ * Seed CSRF on GET /api/client-config. Stale cookies (issuer change, proxy,
+ * secure flag, or the session identifier changing on logout) make
+ * generateToken throw because it re-validates the existing cookie against the
+ * current session before minting a new one. `res.clearCookie` only clears the
+ * *response*, so a retry still reads the same stale value off `req.cookies` —
+ * that value has to be dropped from the request itself before the fallback
+ * token is generated, or the retry throws the same error uncaught.
+ */
+export function seedCsrfToken(
+  req: Parameters<ReturnType<typeof doubleCsrf>["generateToken"]>[0],
+  res: Parameters<ReturnType<typeof doubleCsrf>["generateToken"]>[1],
+): void {
+  try {
+    issueCsrfToken(req, res);
+  } catch {
+    const withCookies = req as unknown as { cookies?: Record<string, unknown> };
+    if (withCookies.cookies) delete withCookies.cookies[CSRF_COOKIE];
+    res.clearCookie(CSRF_COOKIE, {
+      path: "/",
+      secure: cookieSecure(),
+      sameSite: "lax",
+    });
+    issueCsrfToken(req, res);
+  }
+}
 
 /** Reject a state-changing request without a matching token. */
 export const csrfProtection: RequestHandler = (req, res, next) => {

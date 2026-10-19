@@ -35,14 +35,30 @@ export const mockApi: AuthApi = {
     await latency(200);
     switch (clientId) {
       case "talk":
-        return { name: "Tezzeract Talk", logoUrl: "/brand/talk.svg", accentColor: "#20C8F9" };
+        return {
+          name: "Tezzeract Talk",
+          logoUrl: "/brand/talk.svg",
+          accentColor: "#20C8F9",
+          postLoginWelcome: false,
+        };
       case "contelli":
-        return { name: "Contelli", logoUrl: "/brand/contelli.svg", accentColor: "#00378A" };
+        return {
+          name: "Contelli",
+          logoUrl: "/brand/contelli.svg",
+          accentColor: "#00378A",
+          postLoginWelcome: false,
+        };
       case "boom":
         // Exercises the "fall back to Tezzeract defaults on failure" path.
         throw new ApiError("internal_error", "Mock failure", 500);
       default:
-        return { name: "Tezzeract", logoUrl: "/brand/tezzeract.svg", accentColor: "#009BE9" };
+        return {
+          name: "Tezzeract",
+          logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+          wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
+          accentColor: "#009BE9",
+          postLoginWelcome: false,
+        };
     }
   },
 
@@ -102,5 +118,19 @@ export const mockApi: AuthApi = {
   async logout() {
     await latency(300);
     mfaPending = false;
+  },
+
+  async getInteractionStatus() {
+    await latency(50);
+    return { active: true };
+  },
+
+  async checkWelcomeAccess() {
+    await latency(100);
+  },
+
+  async getPostLoginContinue() {
+    await latency(100);
+    return undefined;
   },
 };

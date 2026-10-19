@@ -103,6 +103,14 @@ const EnvSchema = z
     /** Supabase Auth, the credential store. Server-side only. */
     SUPABASE_URL: z.string().url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    /** Publishable anon key; used only server-side for OAuth PKCE with Google. */
+    SUPABASE_ANON_KEY: z.string().min(1),
+
+    /**
+     * After sign-in, show /welcome (with sign out) instead of immediately
+     * resuming the OIDC redirect. Defaults to on in development when unset.
+     */
+    POST_LOGIN_WELCOME: BooleanFromEnv.optional(),
 
     /** Separate secrets so rotating one does not invalidate the other. */
     COOKIE_SECRET: z.string().min(32, "COOKIE_SECRET must be at least 32 characters"),
@@ -121,6 +129,12 @@ const EnvSchema = z
 
     /** Number of proxy hops to trust for req.ip. Wrong value breaks per-IP limits. */
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+
+    /**
+     * Optional OAuth redirect for manual / dev sign-in without a product app.
+     * Merged into the `app` client allowlist. Refused in production.
+     */
+    DEV_REDIRECT_URI: z.string().url().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === "production" && env.ALLOW_LOCALHOST_CLIENTS) {
@@ -135,6 +149,13 @@ const EnvSchema = z
         code: z.ZodIssueCode.custom,
         path: ["AUTH_ISSUER"],
         message: "AUTH_ISSUER must be https in production",
+      });
+    }
+    if (env.NODE_ENV === "production" && env.DEV_REDIRECT_URI) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["DEV_REDIRECT_URI"],
+        message: "DEV_REDIRECT_URI cannot be set in production",
       });
     }
   });
@@ -175,6 +196,35 @@ let cached: Env | undefined;
 export function env(): Env {
   cached ??= parseEnv();
   return cached;
+}
+
+/** When true, successful sign-in lands on /welcome before resuming OIDC. */
+export function postLoginWelcome(): boolean {
+  const configured = env().POST_LOGIN_WELCOME;
+  if (configured !== undefined) return configured;
+  return env().NODE_ENV === "development";
+}
+
+/**
+ * Dev-only OIDC redirect used when no product app starts authorize (localhost
+ * or tunnel). Merged into the `app` client allowlist.
+ */
+export function devRedirectUri(): string | undefined {
+  if (env().NODE_ENV === "production") return undefined;
+  if (env().DEV_REDIRECT_URI) return env().DEV_REDIRECT_URI;
+  if (env().ALLOW_LOCALHOST_CLIENTS) {
+    return `${env().AUTH_ISSUER}/dev/callback`;
+  }
+  return undefined;
+}
+
+/**
+ * Secure cookies when deployed, or whenever AUTH_ISSUER is https (ngrok, tunnels).
+ * Non-secure cookies on an https origin are dropped by current browsers.
+ */
+export function cookieSecure(): boolean {
+  if (env().NODE_ENV === "test") return false;
+  return env().NODE_ENV === "production" || env().AUTH_ISSUER.startsWith("https://");
 }
 
 /** Test seam: drop the memoised env so a test can re-parse a fresh one. */

@@ -27,7 +27,10 @@ export function Logout(): JSX.Element {
 
     api
       .logout()
-      .then(() => setDone(true))
+      .then(() => {
+        sessionStorage.removeItem("tz_dev_auth_bootstrapped");
+        setDone(true);
+      })
       .catch((error: unknown) => {
         submitError.setFromUnknown(error);
         setDone(true);

@@ -20,6 +20,7 @@ export function testEnv(overrides: Record<string, string> = {}): NodeJS.ProcessE
     DATABASE_URL: "postgres://localhost:5432/tezzeract_auth_test",
     SUPABASE_URL: "https://project.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key-not-real",
+    SUPABASE_ANON_KEY: "test-anon-key-not-real",
     COOKIE_SECRET: "x".repeat(32),
     CSRF_SECRET: "y".repeat(32),
     OIDC_SIGNING_KEYS: Buffer.from(JSON.stringify([TEST_SIGNING_KEY])).toString("base64"),

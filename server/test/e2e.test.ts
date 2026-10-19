@@ -33,6 +33,8 @@ vi.mock("../src/services/credentials.js", () => ({
         : { kind: "rejected" },
     ),
     verifyMfa: vi.fn(),
+    beginOAuth: vi.fn(),
+    completeOAuth: vi.fn(),
     register: vi.fn(async () => undefined),
     requestPasswordReset: vi.fn(async () => undefined),
     resetPassword: vi.fn(async () => ({ ok: true })),

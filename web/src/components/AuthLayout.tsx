@@ -32,17 +32,28 @@ export function AuthLayout({
           {loading ? (
             <Skeleton className="h-8 w-32" />
           ) : (
-            <img
-              src={config.logoUrl}
-              // The brand name is already in the heading below, so the logo is
-              // decorative and announcing it would just repeat.
-              alt=""
-              className="h-8 w-auto"
-              // A missing per-client logo should not leave a broken image.
-              onError={(event) => {
-                event.currentTarget.style.visibility = "hidden";
-              }}
-            />
+            <div className="flex items-center gap-2.5">
+              <img
+                src={config.logoUrl}
+                // The brand name is already in the heading below, so the marks are
+                // decorative and announcing them would just repeat.
+                alt=""
+                className="h-8 w-auto"
+                onError={(event) => {
+                  event.currentTarget.style.visibility = "hidden";
+                }}
+              />
+              {config.wordmarkUrl && (
+                <img
+                  src={config.wordmarkUrl}
+                  alt=""
+                  className="h-4 w-auto"
+                  onError={(event) => {
+                    event.currentTarget.style.visibility = "hidden";
+                  }}
+                />
+              )}
+            </div>
           )}
         </div>
 

@@ -156,6 +156,24 @@ export const realApi = {
   logout(): Promise<void> {
     return postNoContent("/api/logout", {});
   },
+
+  async getInteractionStatus(): Promise<{ active: boolean }> {
+    const response = await request("/api/interaction", { method: "GET" });
+    return (await response.json()) as { active: boolean };
+  },
+
+  /** False when the browser has no active provider session. */
+  async checkWelcomeAccess(): Promise<void> {
+    await request("/api/welcome", { method: "GET" });
+  },
+
+  /** OIDC resume path after /welcome, or undefined when none is stored. */
+  async getPostLoginContinue(): Promise<string | undefined> {
+    const response = await request("/api/post-login-continue", { method: "GET" });
+    if (response.status === 204) return undefined;
+    const body = (await response.json()) as { redirect_to: string };
+    return body.redirect_to;
+  },
 };
 
 export type AuthApi = typeof realApi;

@@ -11,6 +11,8 @@ import { Mfa } from "./routes/Mfa";
 import { ResetPassword } from "./routes/ResetPassword";
 import { Signup } from "./routes/Signup";
 import { VerifyEmail } from "./routes/VerifyEmail";
+import { Welcome } from "./routes/Welcome";
+import { DevCallback } from "./routes/DevCallback";
 
 /**
  * Routes and providers.
@@ -31,6 +33,8 @@ function ThemedRoutes(): JSX.Element {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/mfa" element={<Mfa />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/dev/callback" element={<DevCallback />} />
         <Route path="/error" element={<ErrorPage />} />
 
         {/* The root is not a screen; anyone arriving there is signing in. */}

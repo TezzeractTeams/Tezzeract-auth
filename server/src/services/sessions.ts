@@ -1,7 +1,31 @@
+import type { Response } from "express";
 import type Provider from "oidc-provider";
+import { cookieSecure } from "../config/env.js";
 import { query } from "../db/pool.js";
 import { logger } from "../util/logger.js";
-import type { PendingMfa } from "./credentials.js";
+import type { OAuthProvider, PendingMfa } from "./credentials.js";
+
+type ProviderCookieRole = "interaction" | "resume" | "session";
+
+function clearProviderCookie(provider: Provider, res: Response, role: ProviderCookieRole): void {
+  try {
+    const name = provider.cookieName(role);
+    res.clearCookie(name, {
+      path: "/",
+      httpOnly: true,
+      secure: cookieSecure(),
+      sameSite: "lax",
+    });
+  } catch {
+    // Role may be unconfigured in tests.
+  }
+}
+
+export interface PendingOAuth {
+  provider: OAuthProvider;
+  codeVerifier: string;
+  flowId?: string;
+}
 
 /**
  * Sessions and interaction state.
@@ -140,6 +164,39 @@ export async function storePendingMfa(
   );
 }
 
+/** Park the PKCE verifier between the OAuth start and callback requests. */
+export async function storePendingOAuth(
+  provider: Provider,
+  req: unknown,
+  res: unknown,
+  pending: PendingOAuth,
+): Promise<void> {
+  await provider.interactionResult(
+    req as Parameters<Provider["interactionResult"]>[0],
+    res as Parameters<Provider["interactionResult"]>[1],
+    { oauth: pending },
+    { mergeWithLastSubmission: true },
+  );
+}
+
+/** Read back parked OAuth state, if a redirect to the provider is in flight. */
+export async function readPendingOAuth(
+  provider: Provider,
+  req: unknown,
+  res: unknown,
+): Promise<PendingOAuth | undefined> {
+  try {
+    const details = await provider.interactionDetails(
+      req as Parameters<Provider["interactionDetails"]>[0],
+      res as Parameters<Provider["interactionDetails"]>[1],
+    );
+    const result = details.result as { oauth?: PendingOAuth } | undefined;
+    return result?.oauth;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Read back a parked MFA challenge, if one is outstanding. */
 export async function readPendingMfa(
   provider: Provider,
@@ -158,6 +215,24 @@ export async function readPendingMfa(
   }
 }
 
+/** The signed-in account for this browser, if the provider session is active. */
+export async function readSessionAccountId(
+  provider: Provider,
+  req: unknown,
+  res: unknown,
+): Promise<string | undefined> {
+  const ctx = provider.app.createContext(
+    req as Parameters<Provider["app"]["createContext"]>[0],
+    res as Parameters<Provider["app"]["createContext"]>[1],
+  );
+  try {
+    const session = await provider.Session.get(ctx);
+    return session.accountId;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * End the session and revoke every refresh token issued through it.
  *
@@ -166,10 +241,35 @@ export async function readPendingMfa(
  * cannot be recalled — they are self-contained JWTs — which is why their
  * lifetime is capped at fifteen minutes.
  */
+/**
+ * Drop the in-flight OIDC interaction. Used after POST_LOGIN_WELCOME parks the
+ * authorize resume URL in a cookie, and on logout so /login does not reuse a
+ * half-finished interaction.
+ */
+export async function abandonInteraction(
+  provider: Provider,
+  req: unknown,
+  res: Response,
+): Promise<void> {
+  type DetailsArgs = Parameters<Provider["interactionDetails"]>;
+  try {
+    const details = await provider.interactionDetails(
+      req as DetailsArgs[0],
+      res as DetailsArgs[1],
+    );
+    const record = await provider.Interaction.find(details.uid);
+    if (record) await record.destroy();
+  } catch {
+    // No interaction cookie, or it already expired.
+  }
+  clearProviderCookie(provider, res, "interaction");
+  clearProviderCookie(provider, res, "resume");
+}
+
 export async function destroySession(
   provider: Provider,
   req: unknown,
-  res: unknown,
+  res: Response,
 ): Promise<void> {
   const ctx = provider.app.createContext(
     req as Parameters<Provider["app"]["createContext"]>[0],
@@ -191,6 +291,8 @@ export async function destroySession(
   } catch (error) {
     logger.warn({ err: error }, "no session to destroy");
   }
+
+  clearProviderCookie(provider, res, "session");
 
   if (accountId) {
     // Belt and braces: drop any refresh token still recorded for this

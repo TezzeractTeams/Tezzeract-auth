@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApi } from "../api/context";
 import { Alert } from "../components/Alert";
 import { AuthLayout } from "../components/AuthLayout";
@@ -6,6 +7,7 @@ import { OtpInput } from "../components/OtpInput";
 import { PreservedLink } from "../components/PreservedLink";
 import { SubmitButton } from "../components/SubmitButton";
 import { useSubmitError } from "../components/useSubmitError";
+import { usePreservedParams } from "../oidc/usePreservedParams";
 
 /**
  * Second factor.
@@ -16,6 +18,8 @@ import { useSubmitError } from "../components/useSubmitError";
  */
 export function Mfa(): JSX.Element {
   const api = useApi();
+  const navigate = useNavigate();
+  const { linkTo } = usePreservedParams();
   const submitError = useSubmitError();
 
   const [code, setCode] = useState("");
@@ -26,8 +30,12 @@ export function Mfa(): JSX.Element {
     submitError.clear();
     setPending(true);
     try {
-      const { redirect_to } = await api.verifyMfa({ code: value });
-      window.location.assign(redirect_to);
+      const result = await api.verifyMfa({ code: value });
+      if ("welcome" in result) {
+        void navigate(linkTo("/welcome"));
+        return;
+      }
+      window.location.assign(result.redirect_to);
     } catch (error) {
       submitError.setFromUnknown(error);
       // Clear on failure so the next attempt starts from an empty field

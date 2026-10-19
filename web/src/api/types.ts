@@ -47,7 +47,10 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
-export type LoginResponse = { redirect_to: string } | { mfa_required: true };
+export type LoginResponse =
+  | { redirect_to: string }
+  | { mfa_required: true }
+  | { welcome: true };
 
 /** POST /api/signup */
 export interface SignupRequest {
@@ -74,15 +77,16 @@ export interface ResetPasswordRequest {
 export interface MfaVerifyRequest {
   code: string;
 }
-export interface MfaVerifyResponse {
-  redirect_to: string;
-}
+export type MfaVerifyResponse = { redirect_to: string } | { welcome: true };
 
 /** GET /api/client-config — server/src/contracts/clients.ts */
 export interface ClientConfig {
   name: string;
   logoUrl: string;
+  wordmarkUrl?: string;
   accentColor: string;
+  postLoginWelcome: boolean;
+  devRedirectUri?: string;
 }
 
 /** server/src/contracts/api.ts — PASSWORD_MIN_LENGTH / MAX */

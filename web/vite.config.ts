@@ -16,6 +16,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5180,
+    // Suffix match so any ngrok-free.dev tunnel works (the subdomain changes
+    // each time the tunnel restarts). localhost and IPs remain allowed by default.
+    allowedHosts: [".ngrok-free.dev"],
     proxy: Object.fromEntries(
       PROXIED.map((path) => [path, { target: SERVER_ORIGIN, changeOrigin: false }]),
     ),
