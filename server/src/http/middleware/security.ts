@@ -11,44 +11,77 @@ import { isProduction } from "../../config/env.js";
  * instead of the provider's auto-submitting inline script, and why web/ must
  * not use dangerouslySetInnerHTML or inline event handlers.
  */
-export function securityHeaders(): RequestHandler {
-  return helmet({
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: {
-        "default-src": ["'self'"],
-        // Vite emits a single stylesheet; no inline style is needed.
-        "style-src": ["'self'"],
-        "script-src": ["'self'"],
-        // Client logos are served from this origin, and data: covers the
-        // inlined favicon. No remote image host is permitted.
-        "img-src": ["'self'", "data:"],
-        "font-src": ["'self'"],
-        // Same-origin API only. There is no cross-origin call to make.
-        "connect-src": ["'self'"],
-        "form-action": ["'self'"],
-        // Clickjacking a login form is phishing, so framing is forbidden
-        // outright rather than restricted to same-origin.
-        "frame-ancestors": ["'none'"],
-        "frame-src": ["'none'"],
-        "object-src": ["'none'"],
-        "base-uri": ["'none'"],
-        ...(isProduction() ? { "upgrade-insecure-requests": [] } : {}),
-      },
+/**
+ * RP-initiated logout lands here from another product's origin (e.g.
+ * app.tezzeract.com) and immediately auto-submits a same-origin form to
+ * /end_session/confirm. Chrome performs a browsing-context-group swap when a
+ * cross-site navigation lands on a COOP: same-origin page, and that swap can
+ * race the auto-submit, causing the browser to misreport the CSP
+ * `form-action 'self'` check on an otherwise same-origin submission. COOP's
+ * purpose — stopping a malicious opener from reading window.opener — has
+ * nothing to do with this redirect-only page, so it is dropped here rather
+ * than kept and worked around.
+ */
+function isEndSessionPath(path: string): boolean {
+  return path === "/end_session" || path.startsWith("/end_session/");
+}
+
+const baseHelmetOptions = {
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      "default-src": ["'self'"],
+      // Vite emits a single stylesheet; no inline style is needed.
+      "style-src": ["'self'"],
+      "script-src": ["'self'"],
+      // Client logos are served from this origin, and data: covers the
+      // inlined favicon. No remote image host is permitted.
+      "img-src": ["'self'", "data:"],
+      "font-src": ["'self'"],
+      // Same-origin API only. There is no cross-origin call to make.
+      "connect-src": ["'self'"],
+      "form-action": ["'self'"],
+      // Clickjacking a login form is phishing, so framing is forbidden
+      // outright rather than restricted to same-origin.
+      "frame-ancestors": ["'none'"],
+      "frame-src": ["'none'"],
+      "object-src": ["'none'"],
+      "base-uri": ["'none'"],
+      ...(isProduction() ? { "upgrade-insecure-requests": [] } : {}),
     },
-    // One year, subdomains included, preload-eligible.
-    strictTransportSecurity: isProduction()
-      ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
-      : false,
-    referrerPolicy: { policy: "no-referrer" },
-    xContentTypeOptions: true,
-    xFrameOptions: { action: "deny" },
-    // Isolate this origin from any window that opens it.
-    crossOriginOpenerPolicy: { policy: "same-origin" },
-    crossOriginResourcePolicy: { policy: "same-origin" },
-    // Discloses the framework version; nothing needs it.
-    xPoweredBy: false,
-  });
+  },
+  // One year, subdomains included, preload-eligible.
+  strictTransportSecurity: isProduction()
+    ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
+    : false,
+  referrerPolicy: { policy: "no-referrer" },
+  xContentTypeOptions: true,
+  xFrameOptions: { action: "deny" },
+  // Discloses the framework version; nothing needs it.
+  xPoweredBy: false,
+} as const;
+
+const defaultHelmet = helmet({
+  ...baseHelmetOptions,
+  // Isolate this origin from any window that opens it.
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-origin" },
+});
+
+const endSessionHelmet = helmet({
+  ...baseHelmetOptions,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
+});
+
+export function securityHeaders(): RequestHandler {
+  return (req, res, next) => {
+    if (isEndSessionPath(req.path)) {
+      endSessionHelmet(req, res, next);
+      return;
+    }
+    defaultHelmet(req, res, next);
+  };
 }
 
 /**

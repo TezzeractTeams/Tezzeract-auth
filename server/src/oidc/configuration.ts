@@ -182,6 +182,20 @@ export function buildConfiguration(): Configuration {
          * /end_session.
          */
         logoutSource(ctx, form) {
+          /**
+           * `form` is the provider's own `<form id="op.logoutForm">…</form>`
+           * markup. The `logout=yes` field and the fallback submit button are
+           * spliced in as real DOM children of that form, rather than linked
+           * from outside it via a `form="op.logoutForm"` attribute — that
+           * cross-element association is valid HTML5 but gives browsers more
+           * room to disagree about what gets submitted, which is avoidable
+           * here.
+           */
+          const formWithExtras = form.replace(
+            "</form>",
+            `<input type="hidden" name="logout" value="yes"/>` +
+              `<button type="submit">Sign out</button></form>`,
+          );
           ctx.body = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -193,9 +207,7 @@ export function buildConfiguration(): Configuration {
 <p class="lead">Ending your Tezzeract session on this device.</p>
 <div class="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span>
 <span>Please wait a moment.</span></div>
-<input type="hidden" name="logout" value="yes" form="op.logoutForm"/>
-${form}
-<div class="actions"><button type="submit" form="op.logoutForm">Sign out</button></div>
+<div class="actions">${formWithExtras}</div>
 </div></main></body></html>`;
         },
       },
