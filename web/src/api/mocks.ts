@@ -136,6 +136,16 @@ export const mockApi: AuthApi = {
     return { active: true };
   },
 
+  async getSessionStatus() {
+    await latency(50);
+    return { signed_in: false };
+  },
+
+  async continueInteraction() {
+    await latency();
+    return { redirect_to: SUCCESS_REDIRECT };
+  },
+
   async checkWelcomeAccess() {
     await latency(100);
   },

@@ -43,12 +43,38 @@ export function Login(): JSX.Element {
   const { config } = useClientConfig();
   const [interactionActive, setInteractionActive] = useState<boolean | null>(null);
   const [bootstrappingDev, setBootstrappingDev] = useState(false);
+  const [autoContinuing, setAutoContinuing] = useState(false);
   const devBootstrapStarted = useRef(false);
+  const autoContinueStarted = useRef(false);
   const oauthFailed = searchParams.get("oauth_error") === "1";
 
   useEffect(() => {
     void api.getInteractionStatus().then(async (status) => {
       setInteractionActive(status.active);
+
+      if (status.active && !autoContinueStarted.current) {
+        autoContinueStarted.current = true;
+        try {
+          const session = await api.getSessionStatus();
+          if (session.signed_in) {
+            setAutoContinuing(true);
+            const result = await api.continueInteraction();
+            if ("mfa_required" in result) {
+              void navigate(linkTo("/mfa"));
+              return;
+            }
+            if ("welcome" in result) {
+              void navigate(linkTo("/welcome"));
+              return;
+            }
+            window.location.assign(result.redirect_to);
+            return;
+          }
+        } catch {
+          setAutoContinuing(false);
+        }
+      }
+
       if (
         !status.active &&
         config.devRedirectUri &&
@@ -60,7 +86,7 @@ export function Login(): JSX.Element {
         await startDevAuthorize(config.devRedirectUri);
       }
     });
-  }, [api, config.devRedirectUri, interactionParam]);
+  }, [api, config.devRedirectUri, interactionParam, linkTo, navigate]);
 
   const {
     register,
@@ -97,7 +123,11 @@ export function Login(): JSX.Element {
     }
   };
 
-  if (bootstrappingDev || (interactionActive === null && config.devRedirectUri)) {
+  if (
+    autoContinuing ||
+    bootstrappingDev ||
+    (interactionActive === null && config.devRedirectUri)
+  ) {
     return (
       <AuthLayout title="Sign in" description="Preparing your sign-in session…">
         <p className="text-sm text-muted-foreground">One moment…</p>

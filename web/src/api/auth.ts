@@ -162,6 +162,15 @@ export const realApi = {
     return (await response.json()) as { active: boolean };
   },
 
+  async getSessionStatus(): Promise<{ signed_in: boolean }> {
+    const response = await request("/api/session", { method: "GET" });
+    return (await response.json()) as { signed_in: boolean };
+  },
+
+  continueInteraction(): Promise<LoginResponse> {
+    return postJson<LoginResponse>("/api/continue-interaction", {});
+  },
+
   /** False when the browser has no active provider session. */
   async checkWelcomeAccess(): Promise<void> {
     await request("/api/welcome", { method: "GET" });

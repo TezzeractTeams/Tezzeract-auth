@@ -231,6 +231,41 @@ export function authRoutes(provider: Provider): Router {
     }),
   );
 
+  router.get(
+    "/session",
+    asyncRoute(async (req, res) => {
+      const accountId = await readSessionAccountId(provider, req, res);
+      res.status(200).json({ signed_in: Boolean(accountId) });
+    }),
+  );
+
+  /**
+   * Complete an in-flight authorization when the browser already has a provider
+   * session (e.g. signed into app, then opens drive with prompt=consent).
+   */
+  router.post(
+    "/continue-interaction",
+    csrfProtection,
+    asyncRoute(async (req, res) => {
+      const interaction = await currentInteraction(provider, req, res);
+      if (!interaction) fail("no_interaction");
+
+      const accountId = await readSessionAccountId(provider, req, res);
+      if (!accountId) fail("unauthenticated");
+
+      const redirectTo = await completeInteraction(provider, req, res, accountId, {
+        amr: ["pwd"],
+      });
+      if (postLoginWelcome()) {
+        setPostLoginRedirectCookie(res, redirectTo);
+        await abandonInteraction(provider, req, res);
+        res.status(200).json({ welcome: true });
+        return;
+      }
+      res.status(200).json({ redirect_to: redirectTo });
+    }),
+  );
+
   /* --------------------------- post-login welcome -------------------------- */
 
   router.get(
