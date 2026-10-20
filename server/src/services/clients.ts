@@ -11,6 +11,22 @@ import {
 } from "../config/clients.seed.js";
 import { devRedirectUri, env, postLoginWelcome } from "../config/env.js";
 
+/** OIDC post-logout landing on this origin; not a product return URL. */
+function isAuthSignedOutUri(uri: string): boolean {
+  try {
+    return new URL(uri).pathname === "/signed-out";
+  } catch {
+    return false;
+  }
+}
+
+function postSignOutReturnUrl(record: ClientRecord): string {
+  for (const uri of record.post_logout_redirect_uris) {
+    if (!isAuthSignedOutUri(uri)) return uri;
+  }
+  return "https://app.tezzeract.com/";
+}
+
 /**
  * Client registry lookups.
  *
@@ -101,6 +117,7 @@ export function getClientConfig(clientId: string | undefined): ClientConfig {
   return {
     ...branding,
     postLoginWelcome: postLoginWelcome(),
+    postSignOutReturnUrl: postSignOutReturnUrl(record),
     ...(devUri ? { devRedirectUri: devUri } : {}),
   };
 }

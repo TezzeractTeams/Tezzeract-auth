@@ -9,7 +9,10 @@ const router = express.Router();
 const AUTH_ISSUER = process.env.AUTH_ISSUER; // https://auth.tezzeract.dev
 const CLIENT_ID = process.env.AUTH_CLIENT_ID; // "app"
 const REDIRECT_URI = process.env.AUTH_REDIRECT_URI; // https://app.tezzeract.com/auth/callback
-const POST_LOGOUT_REDIRECT_URI = process.env.AUTH_POST_LOGOUT_REDIRECT_URI; // https://app.tezzeract.com/
+const POST_LOGOUT_LANDING_URI =
+  process.env.AUTH_POST_LOGOUT_LANDING_URI ??
+  process.env.AUTH_POST_LOGOUT_REDIRECT_URI ??
+  `${AUTH_ISSUER.replace(/\/$/, "")}/signed-out`;
 
 // Module-scope: caches the key set, refetches only on an unknown kid, so
 // key rotation on the auth server needs no change here.
@@ -116,7 +119,8 @@ router.get("/logout", (req, res) => {
 
   const params = new URLSearchParams({
     id_token_hint: idToken,
-    post_logout_redirect_uri: POST_LOGOUT_REDIRECT_URI,
+    post_logout_redirect_uri: POST_LOGOUT_LANDING_URI,
+    state: CLIENT_ID,
   });
   res.redirect(`${AUTH_ISSUER}/end_session?${params.toString()}`);
 });

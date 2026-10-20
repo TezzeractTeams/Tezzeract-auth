@@ -6,6 +6,7 @@ import {
   withParams,
   clientIdFrom,
 } from "../oidc/params";
+import { clientIdFromLogoutState } from "../oidc/signedOut";
 
 /**
  * The OIDC parameters have to survive the walk from /login to /signup to
@@ -77,5 +78,16 @@ describe("preserving OIDC parameters", () => {
     expect(withParams("/login", "?client_id=a%26prompt%3Dnone")).toBe(
       "/login?client_id=a%26prompt%3Dnone",
     );
+  });
+});
+
+describe("logout state as client_id", () => {
+  it("accepts a registered client_id in state", () => {
+    expect(clientIdFromLogoutState("?state=drive")).toBe("drive");
+  });
+
+  it("rejects values that are not a client_id", () => {
+    expect(clientIdFromLogoutState("?state=https://evil.example")).toBeUndefined();
+    expect(clientIdFromLogoutState("?state=")).toBeUndefined();
   });
 });

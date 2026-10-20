@@ -63,6 +63,8 @@ export const ClientBrandingSchema = z
 export const ClientConfigSchema = ClientBrandingSchema.extend({
   /** When true, sign-in success goes to /welcome before OIDC resume. */
   postLoginWelcome: z.boolean(),
+  /** Product home URL after the /signed-out countdown. */
+  postSignOutReturnUrl: z.string().url(),
   /** Present in development when DEV_REDIRECT_URI is configured. */
   devRedirectUri: z.string().url().optional(),
 }).strict();

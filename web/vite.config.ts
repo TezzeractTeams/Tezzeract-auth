@@ -10,7 +10,16 @@ import react from "@vitejs/plugin-react";
  */
 const SERVER_ORIGIN = process.env["AUTH_SERVER_ORIGIN"] ?? "http://localhost:3000";
 
-const PROXIED = ["/api", "/authorize", "/token", "/jwks", "/userinfo", "/session", "/.well-known"];
+const PROXIED = [
+  "/api",
+  "/authorize",
+  "/token",
+  "/jwks",
+  "/userinfo",
+  "/session",
+  "/end_session",
+  "/.well-known",
+];
 
 export default defineConfig({
   plugins: [react()],

@@ -298,7 +298,10 @@ reviewed commit with an audit trail instead of an `UPDATE`.
      logoUrl: "/brand/newproduct.svg",
      accentColor: "#009BE9",             // exactly 6-digit hex
      redirect_uris: ["https://newproduct.tezzeract.com/auth/callback"],
-     post_logout_redirect_uris: ["https://newproduct.tezzeract.com/"],
+     post_logout_redirect_uris: [
+       "https://auth.tezzeract.com/signed-out",
+       "https://newproduct.tezzeract.com/",
+     ],
    }
    ```
 
@@ -391,6 +394,12 @@ that can mint itself a signing key.
   it**. Access tokens already issued cannot be recalled — they are
   self-contained JWTs — which is exactly why their lifetime is capped at 15
   minutes.
+- RP-initiated logout from a product redirects to `/end_session`, then
+  `post_logout_redirect_uri` (typically `https://auth.tezzeract.com/signed-out`).
+  Products pass their `client_id` as the OIDC `state` parameter so `/signed-out`
+  can theme and return the user to the product home after a short countdown.
+  Set `AUTH_POST_LOGOUT_LANDING_URI` or `AUTH_POST_LOGOUT_REDIRECT_URI` to that
+  signed-out URL in each app; it defaults to `{AUTH_ISSUER}/signed-out`.
 
 ### Non-disclosure
 
@@ -427,9 +436,9 @@ hashed, so the tables throttle without doubling as a list of user emails.
 
 - Strict CSP: `default-src 'self'`, `frame-ancestors 'none'`, **no nonce and no
   `unsafe-inline` anywhere**. This origin serves a login form; script injection
-  here is credential theft. That constraint is why the RP-initiated logout page
-  renders a real submit button instead of the provider's auto-submitting inline
-  script.
+  here is credential theft. RP-initiated logout auto-submits via
+  `/logout-confirm.js` (same-origin only) and keeps a real submit button as a
+  noscript fallback.
 - HSTS (1 year, subdomains, preload) in production, `no-referrer`, `nosniff`,
   `X-Frame-Options: DENY`, COOP/CORP same-origin, no `X-Powered-By`.
 - `noindex` as both a header and a meta tag.

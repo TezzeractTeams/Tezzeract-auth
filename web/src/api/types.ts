@@ -86,6 +86,7 @@ export interface ClientConfig {
   wordmarkUrl?: string;
   accentColor: string;
   postLoginWelcome: boolean;
+  postSignOutReturnUrl: string;
   devRedirectUri?: string;
 }
 

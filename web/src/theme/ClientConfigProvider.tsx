@@ -22,6 +22,7 @@ export const TEZZERACT_DEFAULTS: ClientConfig = {
   wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
   accentColor: "#009BE9",
   postLoginWelcome: false,
+  postSignOutReturnUrl: "https://app.tezzeract.com/",
 };
 
 interface ClientConfigState {

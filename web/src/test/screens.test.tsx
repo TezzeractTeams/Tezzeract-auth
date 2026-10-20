@@ -18,6 +18,7 @@ const config = {
   wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
   accentColor: "#009BE9",
   postLoginWelcome: false,
+  postSignOutReturnUrl: "https://app.tezzeract.com/",
 };
 
 function stubApi(overrides: Partial<AuthApi> = {}): AuthApi {
@@ -208,6 +209,36 @@ describe("error screen", () => {
     // The parameter is a lookup key only; it must not reach the document.
     expect(document.body.innerHTML).not.toContain("onerror");
     expect(document.querySelector("img[src='x']")).toBeNull();
+  });
+});
+
+describe("signed-out screen", () => {
+  it("shows a countdown and can continue to the product home", async () => {
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...original, assign },
+    });
+
+    const api = stubApi({
+      getClientConfig: vi.fn().mockResolvedValue({
+        name: "Tezzeract Drive",
+        logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+        accentColor: "#009BE9",
+        postLoginWelcome: false,
+        postSignOutReturnUrl: "https://drive.tezzeract.com/",
+      }),
+    });
+    renderAt("/signed-out?state=drive", api);
+
+    expect(await screen.findByText(/google account/i)).toBeInTheDocument();
+    expect(screen.getByText(/5 sec/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /continue now/i }));
+    expect(assign).toHaveBeenCalledWith("https://drive.tezzeract.com/");
+
+    Object.defineProperty(window, "location", { configurable: true, value: original });
   });
 });
 

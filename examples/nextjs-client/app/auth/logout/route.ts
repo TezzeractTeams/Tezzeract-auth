@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const AUTH_ISSUER = process.env.AUTH_ISSUER!;
+const AUTH_ISSUER = process.env.AUTH_ISSUER!.replace(/\/$/, "");
+const AUTH_CLIENT_ID = process.env.AUTH_CLIENT_ID!;
+const POST_LOGOUT_LANDING_URI =
+  process.env.AUTH_POST_LOGOUT_LANDING_URI ??
+  process.env.AUTH_POST_LOGOUT_REDIRECT_URI ??
+  `${AUTH_ISSUER}/signed-out`;
 
 export async function GET(req: NextRequest): Promise<Response> {
   const cookieStore = await cookies();
@@ -19,7 +24,8 @@ export async function GET(req: NextRequest): Promise<Response> {
   // an entry in post_logout_redirect_uris EXACTLY.
   const params = new URLSearchParams({
     id_token_hint: idToken,
-    post_logout_redirect_uri: process.env.AUTH_POST_LOGOUT_REDIRECT_URI!,
+    post_logout_redirect_uri: POST_LOGOUT_LANDING_URI,
+    state: AUTH_CLIENT_ID,
   });
 
   return NextResponse.redirect(`${AUTH_ISSUER}/end_session?${params.toString()}`);

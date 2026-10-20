@@ -12,12 +12,12 @@ import { applyTestEnv } from "./helpers/env.js";
 describe("client registry", () => {
   beforeEach(() => applyTestEnv());
 
-  it("seeds app, talk and contelli", () => {
+  it("seeds app, talk, contelli and drive", () => {
     expect(
       listClients()
         .map((c) => c.client_id)
         .sort(),
-    ).toEqual(["app", "contelli", "talk"]);
+    ).toEqual(["app", "contelli", "drive", "talk"]);
   });
 
   it("defaults to the Tezzeract app when no client_id is given", () => {
@@ -35,7 +35,15 @@ describe("client registry", () => {
       "logoUrl",
       "name",
       "postLoginWelcome",
+      "postSignOutReturnUrl",
     ]);
+  });
+
+  it("derives postSignOutReturnUrl from the product home, not /signed-out", () => {
+    expect(getClientConfig("drive").postSignOutReturnUrl).toBe("https://drive.tezzeract.com/");
+    expect(isAllowedPostLogoutRedirectUri("drive", "https://auth.tezzeract.com/signed-out")).toBe(
+      true,
+    );
   });
 });
 

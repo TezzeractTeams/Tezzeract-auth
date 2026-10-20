@@ -40,6 +40,15 @@ export const mockApi: AuthApi = {
           logoUrl: "/brand/talk.svg",
           accentColor: "#20C8F9",
           postLoginWelcome: false,
+          postSignOutReturnUrl: "https://talk.tezzeract.com/",
+        };
+      case "drive":
+        return {
+          name: "Tezzeract Drive",
+          logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+          accentColor: "#009BE9",
+          postLoginWelcome: false,
+          postSignOutReturnUrl: "https://drive.tezzeract.com/",
         };
       case "contelli":
         return {
@@ -47,6 +56,7 @@ export const mockApi: AuthApi = {
           logoUrl: "/brand/contelli.svg",
           accentColor: "#00378A",
           postLoginWelcome: false,
+          postSignOutReturnUrl: "https://contelli.co/",
         };
       case "boom":
         // Exercises the "fall back to Tezzeract defaults on failure" path.
@@ -58,6 +68,7 @@ export const mockApi: AuthApi = {
           wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
           accentColor: "#009BE9",
           postLoginWelcome: false,
+          postSignOutReturnUrl: "https://app.tezzeract.com/",
         };
     }
   },

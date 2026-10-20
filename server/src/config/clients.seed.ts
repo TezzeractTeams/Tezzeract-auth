@@ -10,6 +10,12 @@ import type { ClientRecord } from "../contracts/clients.js";
  */
 export const DEFAULT_CLIENT_ID = "app";
 
+/** RP-initiated logout lands here for the signed-out countdown screen. */
+export const AUTH_SIGNED_OUT_URL_PRODUCTION = "https://auth.tezzeract.com/signed-out";
+
+/** Local auth server origin when ALLOW_LOCALHOST_CLIENTS is set. */
+export const AUTH_SIGNED_OUT_URL_LOCALHOST = "http://localhost:3000/signed-out";
+
 export const PRODUCTION_CLIENTS: ClientRecord[] = [
   {
     client_id: "app",
@@ -18,7 +24,7 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     wordmarkUrl: "/brand/Tezzeract%20-%20Text%20Logo%20%28Gradient%29.png",
     accentColor: "#009BE9",
     redirect_uris: ["https://app.tezzeract.com/auth/callback"],
-    post_logout_redirect_uris: ["https://app.tezzeract.com/"],
+    post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://app.tezzeract.com/"],
   },
   {
     client_id: "talk",
@@ -26,7 +32,7 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     logoUrl: "/brand/talk.svg",
     accentColor: "#20C8F9",
     redirect_uris: ["https://talk.tezzeract.com/auth/callback"],
-    post_logout_redirect_uris: ["https://talk.tezzeract.com/"],
+    post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://talk.tezzeract.com/"],
   },
   {
     client_id: "contelli",
@@ -34,7 +40,7 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     logoUrl: "/brand/contelli.svg",
     accentColor: "#00378A",
     redirect_uris: ["https://contelli.co/auth/callback"],
-    post_logout_redirect_uris: ["https://contelli.co/"],
+    post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://contelli.co/"],
   },
   {
     client_id: "drive",
@@ -43,7 +49,7 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
     accentColor: "#009BE9",
     redirect_uris: ["https://drive.tezzeract.com/auth/callback"],
-    post_logout_redirect_uris: ["https://drive.tezzeract.com/"],
+    post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://drive.tezzeract.com/"],
   },
 ];
 
@@ -60,8 +66,8 @@ export const LOCALHOST_REDIRECT_URIS: Record<string, string[]> = {
 };
 
 export const LOCALHOST_POST_LOGOUT_URIS: Record<string, string[]> = {
-  app: ["http://localhost:5173/"],
-  talk: ["http://localhost:5174/"],
-  contelli: ["http://localhost:5175/"],
-  drive: ["http://localhost:5176/"],
+  app: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5173/"],
+  talk: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5174/"],
+  contelli: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5175/"],
+  drive: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5176/"],
 };

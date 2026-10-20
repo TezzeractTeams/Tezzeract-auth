@@ -172,21 +172,27 @@ export function buildConfiguration(): Configuration {
          * The provider's default page auto-submits with an inline script,
          * which the strict CSP (`default-src 'self'`, no unsafe-inline)
          * blocks. Rather than weaken the CSP with a nonce for one page, this
-         * renders the provider's form with a real submit button and no script
-         * at all. The usual sign-out path is web/'s /logout screen calling
-         * POST /api/logout; this page is only reached when another product
-         * starts logout at /session/end.
+         * auto-submits via /logout-confirm.js (same-origin, CSP-safe). A real
+         * submit button remains for noscript and as a fallback. The usual
+         * sign-out path is web/'s /logout screen calling POST /api/logout;
+         * this page is only reached when another product starts logout at
+         * /end_session.
          */
         logoutSource(ctx, form) {
           ctx.body = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Sign out</title>
-<link rel="stylesheet" href="/logout-confirm.css"></head>
-<body><main><h1>Sign out of Tezzeract?</h1>${form}
-<button type="submit" form="op.logoutForm" autofocus>Sign out</button>
-</main></body></html>`;
+<title>Signing you out</title>
+<link rel="stylesheet" href="/logout-confirm.css">
+<script src="/logout-confirm.js" defer></script></head>
+<body><main><div class="card"><h1>Signing you out…</h1>
+<p class="lead">Ending your Tezzeract session on this device.</p>
+<div class="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span>
+<span>Please wait a moment.</span></div>
+${form}
+<div class="actions"><button type="submit" form="op.logoutForm">Sign out</button></div>
+</div></main></body></html>`;
         },
       },
       resourceIndicators: {

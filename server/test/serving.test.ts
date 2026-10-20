@@ -55,6 +55,7 @@ describe("serving the frontend alongside the OIDC endpoints", () => {
       "/verify-email",
       "/mfa",
       "/logout",
+      "/signed-out",
       "/error",
     ]) {
       const response = await request(app).get(path);
