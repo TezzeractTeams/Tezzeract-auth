@@ -33,6 +33,13 @@ describe("end_session response headers and markup", () => {
     expect(response.headers["cross-origin-resource-policy"]).toBe("same-origin");
   });
 
+  it("drops Cross-Origin-Embedder-Policy on /end_session", async () => {
+    const { app } = createTestApp();
+    const response = await request(app).get("/end_session");
+
+    expect(response.headers["cross-origin-embedder-policy"]).toBeUndefined();
+  });
+
   it("still sends form-action 'self' on /end_session", async () => {
     const { app } = createTestApp();
     const response = await request(app).get("/end_session");

@@ -72,6 +72,14 @@ const endSessionHelmet = helmet({
   ...baseHelmetOptions,
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: false,
+  // Defensive, alongside COOP/CORP above: helmet enables COEP
+  // (`require-corp`) by default, and while same-origin resources are exempt
+  // from the isolation check it imposes, there is no reason to carry any
+  // cross-origin-isolation header on this one-shot, no-subresource page.
+  // Keeping every header that isn't needed here off reduces the surface for
+  // another browser-specific interaction with the cross-site landing that
+  // caused the COOP bug in the first place.
+  crossOriginEmbedderPolicy: false,
 });
 
 export function securityHeaders(): RequestHandler {
