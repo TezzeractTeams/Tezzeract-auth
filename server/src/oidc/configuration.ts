@@ -6,6 +6,7 @@ import { credentials } from "../services/credentials.js";
 import { postgresAdapter } from "./adapter.pg.js";
 import { signingAlg, signingKeys } from "./keys.js";
 import { logger } from "../util/logger.js";
+import { normalizeLogoutConfirmFormAction } from "./logoutForm.js";
 
 /**
  * oidc-provider configuration.
@@ -191,10 +192,13 @@ export function buildConfiguration(): Configuration {
            * room to disagree about what gets submitted, which is avoidable
            * here.
            */
-          const formWithExtras = form.replace(
-            "</form>",
-            `<input type="hidden" name="logout" value="yes"/>` +
-              `<button type="submit">Sign out</button></form>`,
+          const formWithExtras = normalizeLogoutConfirmFormAction(
+            form.replace(
+              "</form>",
+              `<input type="hidden" name="logout" value="yes"/>` +
+                `<button type="submit">Sign out</button></form>`,
+            ),
+            env().AUTH_ISSUER,
           );
           ctx.body = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">

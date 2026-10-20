@@ -2,11 +2,18 @@
   function submitLogout() {
     var form = document.getElementById("op.logoutForm");
     if (!form) return;
-    // form.submit() rather than requestSubmit(): it's the same mechanism the
-    // provider's own default (unauthenticated) page uses successfully, and
-    // it doesn't depend on the newer requestSubmit() API, which is more
-    // likely to be affected by a same-tick browsing-context-group swap right
-    // after a cross-site navigation lands here.
+    // Root-relative action avoids Chrome blocking an absolute same-origin URL
+    // after a cross-site navigation (CSP form-action 'self' false positive).
+    try {
+      var target = new URL(form.getAttribute("action") || form.action, window.location.href);
+      if (target.origin === window.location.origin) {
+        form.setAttribute("action", target.pathname + target.search);
+      }
+    } catch (_err) {
+      // Keep provider-supplied action if parsing fails.
+    }
+    // form.submit() rather than requestSubmit(): same mechanism as the
+    // provider's default page; less sensitive to browsing-context swaps.
     form.submit();
   }
 
