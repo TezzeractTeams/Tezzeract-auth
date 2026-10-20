@@ -79,6 +79,9 @@ export const ClientRecordSchema = ClientBrandingSchema.extend({
     .regex(/^[a-z0-9][a-z0-9_-]*$/, "client_id must be lowercase alphanumeric, - or _"),
   redirect_uris: z.array(RedirectUriSchema).min(1),
   post_logout_redirect_uris: z.array(RedirectUriSchema).default([]),
+  /** OIDC Back-Channel Logout 1.0 receiver for this product. */
+  backchannel_logout_uri: RedirectUriSchema,
+  backchannel_logout_session_required: z.literal(true).default(true),
 }).strict();
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
 

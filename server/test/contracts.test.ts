@@ -68,6 +68,7 @@ describe("client registry contract", () => {
       ClientRecordSchema.safeParse({
         ...base,
         redirect_uris: ["https://app.tezzeract.com/auth/callback"],
+        backchannel_logout_uri: "https://app.tezzeract.com/auth/backchannel-logout",
       }).success,
     ).toBe(true);
   });

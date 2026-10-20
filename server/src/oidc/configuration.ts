@@ -43,6 +43,8 @@ export function buildConfiguration(): Configuration {
       client_name: client.name,
       redirect_uris: client.redirect_uris,
       post_logout_redirect_uris: client.post_logout_redirect_uris,
+      backchannel_logout_uri: client.backchannel_logout_uri,
+      backchannel_logout_session_required: client.backchannel_logout_session_required,
       // Public client: no secret to distribute or rotate. PKCE is the proof.
       token_endpoint_auth_method: "none",
       grant_types: ["authorization_code", "refresh_token"],
@@ -155,6 +157,7 @@ export function buildConfiguration(): Configuration {
     },
 
     features: {
+      backchannelLogout: { enabled: true },
       // The provider's built-in interaction screens must never be reachable.
       devInteractions: { enabled: false },
       revocation: { enabled: true },
@@ -190,6 +193,7 @@ export function buildConfiguration(): Configuration {
 <p class="lead">Ending your Tezzeract session on this device.</p>
 <div class="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span>
 <span>Please wait a moment.</span></div>
+<input type="hidden" name="logout" value="yes" form="op.logoutForm"/>
 ${form}
 <div class="actions"><button type="submit" form="op.logoutForm">Sign out</button></div>
 </div></main></body></html>`;

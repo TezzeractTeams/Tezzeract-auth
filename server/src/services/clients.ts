@@ -5,6 +5,7 @@ import {
 } from "../contracts/clients.js";
 import {
   DEFAULT_CLIENT_ID,
+  LOCALHOST_BACKCHANNEL_LOGOUT_URIS,
   LOCALHOST_POST_LOGOUT_URIS,
   LOCALHOST_REDIRECT_URIS,
   PRODUCTION_CLIENTS,
@@ -58,11 +59,28 @@ function build(): Map<string, ClientRecord> {
       redirect_uris = [...redirect_uris, devRedirect];
     }
 
-    if (redirect_uris === client.redirect_uris && post_logout_redirect_uris === client.post_logout_redirect_uris) {
+    let backchannel_logout_uri = client.backchannel_logout_uri;
+    if (allowLocalhost) {
+      const localBackchannel = LOCALHOST_BACKCHANNEL_LOGOUT_URIS[client.client_id];
+      if (localBackchannel) {
+        backchannel_logout_uri = localBackchannel;
+      }
+    }
+
+    if (
+      redirect_uris === client.redirect_uris &&
+      post_logout_redirect_uris === client.post_logout_redirect_uris &&
+      backchannel_logout_uri === client.backchannel_logout_uri
+    ) {
       return client;
     }
 
-    return { ...client, redirect_uris, post_logout_redirect_uris };
+    return {
+      ...client,
+      redirect_uris,
+      post_logout_redirect_uris,
+      backchannel_logout_uri,
+    };
   });
 
   // Re-validate after the localhost merge: the merged list is what the

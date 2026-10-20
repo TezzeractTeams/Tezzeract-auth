@@ -25,6 +25,8 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     accentColor: "#009BE9",
     redirect_uris: ["https://app.tezzeract.com/auth/callback"],
     post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://app.tezzeract.com/"],
+    backchannel_logout_uri: "https://app.tezzeract.com/auth/backchannel-logout",
+    backchannel_logout_session_required: true,
   },
   {
     client_id: "talk",
@@ -33,6 +35,8 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     accentColor: "#20C8F9",
     redirect_uris: ["https://talk.tezzeract.com/auth/callback"],
     post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://talk.tezzeract.com/"],
+    backchannel_logout_uri: "https://talk.tezzeract.com/auth/backchannel-logout",
+    backchannel_logout_session_required: true,
   },
   {
     client_id: "contelli",
@@ -41,6 +45,8 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     accentColor: "#00378A",
     redirect_uris: ["https://contelli.co/auth/callback"],
     post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://contelli.co/"],
+    backchannel_logout_uri: "https://contelli.co/auth/backchannel-logout",
+    backchannel_logout_session_required: true,
   },
   {
     client_id: "drive",
@@ -50,6 +56,8 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     accentColor: "#009BE9",
     redirect_uris: ["https://drive.tezzeract.com/auth/callback"],
     post_logout_redirect_uris: [AUTH_SIGNED_OUT_URL_PRODUCTION, "https://drive.tezzeract.com/"],
+    backchannel_logout_uri: "https://drive.tezzeract.com/auth/backchannel-logout",
+    backchannel_logout_session_required: true,
   },
 ];
 
@@ -70,4 +78,11 @@ export const LOCALHOST_POST_LOGOUT_URIS: Record<string, string[]> = {
   talk: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5174/"],
   contelli: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5175/"],
   drive: [AUTH_SIGNED_OUT_URL_LOCALHOST, "http://localhost:5176/"],
+};
+
+export const LOCALHOST_BACKCHANNEL_LOGOUT_URIS: Record<string, string> = {
+  app: "http://localhost:5173/auth/backchannel-logout",
+  talk: "http://localhost:5174/auth/backchannel-logout",
+  contelli: "http://localhost:5175/auth/backchannel-logout",
+  drive: "http://localhost:5176/auth/backchannel-logout",
 };
