@@ -36,6 +36,15 @@ export const PRODUCTION_CLIENTS: ClientRecord[] = [
     redirect_uris: ["https://contelli.co/auth/callback"],
     post_logout_redirect_uris: ["https://contelli.co/"],
   },
+  {
+    client_id: "drive",
+    name: "Tezzeract Drive",
+    // TODO: replace with a dedicated /brand/drive.svg once the asset exists.
+    logoUrl: "/brand/Tezzeract%20-%20Symbolic%20Logo%20%28Gradient%29.webp",
+    accentColor: "#009BE9",
+    redirect_uris: ["https://drive.tezzeract.com/auth/callback"],
+    post_logout_redirect_uris: ["https://drive.tezzeract.com/"],
+  },
 ];
 
 /**
@@ -47,10 +56,12 @@ export const LOCALHOST_REDIRECT_URIS: Record<string, string[]> = {
   app: ["http://localhost:5173/auth/callback", "http://127.0.0.1:5173/auth/callback"],
   talk: ["http://localhost:5174/auth/callback"],
   contelli: ["http://localhost:5175/auth/callback"],
+  drive: ["http://localhost:5176/auth/callback"],
 };
 
 export const LOCALHOST_POST_LOGOUT_URIS: Record<string, string[]> = {
   app: ["http://localhost:5173/"],
   talk: ["http://localhost:5174/"],
   contelli: ["http://localhost:5175/"],
+  drive: ["http://localhost:5176/"],
 };
