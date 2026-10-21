@@ -285,11 +285,16 @@ export function buildConfiguration(): Configuration {
       if (!user) return undefined;
 
       const { memberships, standing } = await getSnapshot(sub);
+      // `sid` is the per-client session id the provider stores on the token.
+      // It matches the id_token and the backchannel logout_token `sid`, which
+      // is what lets a product revoke an open session when logout arrives.
+      const sid = "sid" in token && typeof token.sid === "string" ? token.sid : undefined;
       return {
         email: user.email,
         name: user.name,
         standing,
         memberships,
+        ...(sid ? { sid } : undefined),
       };
     },
 

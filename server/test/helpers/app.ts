@@ -4,6 +4,7 @@ import type { Express } from "express";
 import { buildConfiguration } from "../../src/oidc/configuration.js";
 import { createApp } from "../../src/http/app.js";
 import { env } from "../../src/config/env.js";
+import { installLogoutRevocation } from "../../src/oidc/logoutRevocation.js";
 
 /**
  * A real app for integration tests.
@@ -24,6 +25,7 @@ export function createTestApp(): { app: Express; provider: Provider } {
   delete (configuration as { adapter?: unknown }).adapter;
 
   const provider = new Provider(env().AUTH_ISSUER, configuration);
+  installLogoutRevocation(provider);
   const app = createApp({ provider, serveWeb: false, version: "test" });
   return { app, provider };
 }

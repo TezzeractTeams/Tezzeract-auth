@@ -2,6 +2,7 @@ import Provider from "oidc-provider";
 import { env } from "../config/env.js";
 import { buildConfiguration } from "./configuration.js";
 import { logger } from "../util/logger.js";
+import { installLogoutRevocation } from "./logoutRevocation.js";
 
 /**
  * The OIDC provider instance.
@@ -19,6 +20,8 @@ export function getProvider(): Provider {
     // The provider sits behind a proxy in every deployed environment; without
     // this it builds redirect URLs from the internal http origin.
     provider.proxy = env().TRUST_PROXY_HOPS > 0;
+
+    installLogoutRevocation(provider);
 
     // Endpoint-level failures. The event names are not all present in the
     // published event map, so the listener is attached through a narrow cast
